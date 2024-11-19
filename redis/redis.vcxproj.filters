@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="redis.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="DataStruct\sds.ixx">
       <Filter>源文件</Filter>
     </ClCompile>

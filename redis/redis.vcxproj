@@ -133,7 +133,6 @@
   <ItemGroup>
     <ClCompile Include="DataStruct\sds.cpp" />
     <ClCompile Include="DataStruct\sds.ixx" />
-    <ClCompile Include="redis.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
