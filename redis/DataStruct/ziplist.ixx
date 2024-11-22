@@ -66,5 +66,3 @@ export
 
 	constexpr bool isStr(std::uint8_t encoding) { return (encoding & 0xC0) < 0xC0; }
 }
-
-

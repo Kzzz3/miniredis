@@ -27,5 +27,26 @@
     <ClCompile Include="DataStruct\ziplist.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="DataStruct\sds_test.ixx">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DataStruct\test.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DataStruct\ziplist_test.ixx">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DataStruct\dict.ixx">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DataStruct\intset.ixx">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DataStruct\linkedlist.ixx">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DataStruct\rbt.ixx">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

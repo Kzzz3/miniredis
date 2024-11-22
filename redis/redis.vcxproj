@@ -131,10 +131,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DataStruct\dict.ixx" />
+    <ClCompile Include="DataStruct\intset.ixx" />
+    <ClCompile Include="DataStruct\linkedlist.ixx" />
+    <ClCompile Include="DataStruct\rbt.ixx" />
     <ClCompile Include="DataStruct\sds.cpp" />
     <ClCompile Include="DataStruct\sds.ixx" />
+    <ClCompile Include="DataStruct\sds_test.ixx" />
+    <ClCompile Include="DataStruct\test.cpp" />
     <ClCompile Include="DataStruct\ziplist.cpp" />
     <ClCompile Include="DataStruct\ziplist.ixx" />
+    <ClCompile Include="DataStruct\ziplist_test.ixx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
