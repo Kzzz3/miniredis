@@ -133,6 +133,8 @@
   <ItemGroup>
     <ClCompile Include="DataStruct\sds.cpp" />
     <ClCompile Include="DataStruct\sds.ixx" />
+    <ClCompile Include="DataStruct\ziplist.cpp" />
+    <ClCompile Include="DataStruct\ziplist.ixx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

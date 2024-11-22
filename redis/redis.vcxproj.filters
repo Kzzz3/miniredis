@@ -21,5 +21,11 @@
     <ClCompile Include="DataStruct\sds.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="DataStruct\ziplist.ixx">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DataStruct\ziplist.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
