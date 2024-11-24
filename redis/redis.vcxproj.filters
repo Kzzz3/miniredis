@@ -39,13 +39,19 @@
     <ClCompile Include="DataStruct\dict.ixx">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="DataStruct\intset.ixx">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="DataStruct\linkedlist.ixx">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="DataStruct\rbt.ixx">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DataStruct\intset.ixx">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DataStruct\intset.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DataStruct\intset_test.ixx">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

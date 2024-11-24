@@ -132,7 +132,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DataStruct\dict.ixx" />
+    <ClCompile Include="DataStruct\intset.cpp" />
     <ClCompile Include="DataStruct\intset.ixx" />
+    <ClCompile Include="DataStruct\intset_test.ixx" />
     <ClCompile Include="DataStruct\linkedlist.ixx" />
     <ClCompile Include="DataStruct\rbt.ixx" />
     <ClCompile Include="DataStruct\sds.cpp" />
