@@ -5,7 +5,6 @@ import std;
 constexpr size_t SDS_MAX_PREALLOC = 1024 * 1024;
 
 export enum class sds_type : std::uint8_t {
-	SDS_UNINIT = 0,
 	SDS_TYPE_8 = 1,
 	SDS_TYPE_16 = 2,
 	SDS_TYPE_32 = 4,
@@ -49,4 +48,21 @@ public:
 #pragma pack(pop)
 
 template <typename Func, typename Ret = std::invoke_result_t<Func, sdshdr<std::uint64_t>*>>
-inline auto access_sdshdr(sds* str, Func&& operation) -> Ret;
+constexpr auto access_sdshdr(sds* str, Func&& operation) -> Ret;
+
+namespace std {
+	template <>
+	struct hash<sds*> {
+		size_t operator()(const sds* const& p) const {
+			return std::hash<std::string_view>()(std::string_view(p->buf, const_cast<sds*>(p)->length()));
+		}
+	};
+
+	template <>
+	struct equal_to<sds*> {
+		bool operator()(const sds* const& lhs, const sds* const& rhs) const {
+			return std::string_view(lhs->buf, const_cast<sds*>(lhs)->length()) ==
+				std::string_view(rhs->buf, const_cast<sds*>(rhs)->length());
+		}
+	};
+}

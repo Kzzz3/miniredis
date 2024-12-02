@@ -1,13 +1,8 @@
 export module ziplist_test;
 
-#include <cassert>
-#include <iostream>
-#include <string>
-#include <vector>
-#include <chrono>
-
-import ziplist;
 import std;
+import ziplist;
+import <cassert>;
 
 // Utility functions
 namespace utils {
@@ -199,13 +194,13 @@ namespace tests {
 
         auto start = std::chrono::high_resolution_clock::now();
         // Insert 1 million elements for performance test
-        for (int i = 0; i < 100000; ++i) {
+        for (int i = 0; i < 1000000; ++i) {
             std::string str = "item" + std::to_string(i);
             zl = zl->push_back(reinterpret_cast<std::uint8_t*>(str.data()), str.size());
         }
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> diff = end - start;
-        std::cout << "Performance Test - Insertion time for 100k elements: " << diff.count() << " seconds.\n";
+        std::cout << "Performance Test - Insertion time for 100w elements: " << diff.count() << " seconds.\n";
 
         start = std::chrono::high_resolution_clock::now();
         // Pop 1 million elements for performance test
@@ -214,7 +209,7 @@ namespace tests {
         }
         end = std::chrono::high_resolution_clock::now();
         diff = end - start;
-        std::cout << "Performance Test - Deletion time for 100k elements: " << diff.count() << " seconds.\n";
+        std::cout << "Performance Test - Deletion time for 100w elements: " << diff.count() << " seconds.\n";
 
         utils::check(zl);
         ::operator delete(zl);

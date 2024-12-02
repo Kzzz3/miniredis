@@ -1,6 +1,7 @@
 export module dict;
 
 import std;
+import sds;
 
 union dictVal
 {
@@ -10,4 +11,4 @@ union dictVal
     std::uint64_t u64num;
 };
 
-export using dict = std::unordered_map<void*, dictVal>;
+export using dict = std::unordered_map<sds*, dictVal>;

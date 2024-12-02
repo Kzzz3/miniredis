@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -108,6 +108,7 @@
       <ScanSourceForModuleDependencies>true</ScanSourceForModuleDependencies>
       <EnableModules>true</EnableModules>
       <BuildStlModules>true</BuildStlModules>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -131,19 +132,30 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="command.cpp" />
+    <ClCompile Include="command.ixx" />
+    <ClCompile Include="DataType\redisobj.cpp" />
+    <ClCompile Include="server.cpp" />
+    <ClCompile Include="utility.ixx" />
+    <ClCompile Include="db.ixx" />
     <ClCompile Include="DataStruct\dict.ixx" />
     <ClCompile Include="DataStruct\intset.cpp" />
     <ClCompile Include="DataStruct\intset.ixx" />
-    <ClCompile Include="DataStruct\intset_test.ixx" />
+    <ClCompile Include="Networking\connection.ixx" />
+    <ClCompile Include="Test\dict_test.ixx" />
+    <ClCompile Include="Test\intset_test.ixx" />
     <ClCompile Include="DataStruct\linkedlist.ixx" />
     <ClCompile Include="DataStruct\rbt.ixx" />
     <ClCompile Include="DataStruct\sds.cpp" />
     <ClCompile Include="DataStruct\sds.ixx" />
-    <ClCompile Include="DataStruct\sds_test.ixx" />
-    <ClCompile Include="DataStruct\test.cpp" />
+    <ClCompile Include="Test\sds_test.ixx" />
     <ClCompile Include="DataStruct\ziplist.cpp" />
     <ClCompile Include="DataStruct\ziplist.ixx" />
-    <ClCompile Include="DataStruct\ziplist_test.ixx" />
+    <ClCompile Include="Test\ziplist_test.ixx" />
+    <ClCompile Include="DataType\redisobj.ixx" />
+    <ClCompile Include="redis.cpp" />
+    <ClCompile Include="server.ixx" />
+    <ClCompile Include="test.ixx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

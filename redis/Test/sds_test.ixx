@@ -1,15 +1,11 @@
-module;
-
-#include <cassert>
-#include <iostream>
-#include <cstring>
-#include <thread>
-#include <vector>
-#include <chrono>
-
 export module sds_test;
 
 import sds;
+import <chrono>;
+import <thread>;
+import <cstring>;
+import <cassert>;
+import <iostream>;
 
 export void run_sds_tests() {
     using namespace std;
@@ -101,14 +97,14 @@ export void run_sds_tests() {
         const char* data = "PerformanceTest";
         size_t len = std::strlen(data);
 
-        for (int i = 0; i < 100000; ++i) {
+        for (int i = 0; i < 1000000; ++i) {
             sds* obj = sds::create(data, len, len);
             sds::destroy(obj);
         }
 
         auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-        cout << "Performance Test - Create and Destroy 100000 objects: " << duration << " ms" << endl;
+        auto duration = chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        cout << "Performance Test - Create and Destroy 1000000 objects: " << duration << " ms" << endl;
         };
 
     // Test: Performance - Appending to a string multiple times
@@ -118,13 +114,13 @@ export void run_sds_tests() {
         size_t append_len = std::strlen(append_data);
 
         sds* obj = sds::create("", 0, append_len);
-        for (int i = 0; i < 100000; ++i) {
+        for (int i = 0; i < 1000000; ++i) {
             obj = obj->append(append_data, append_len);
         }
 
         auto end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-        cout << "Performance Test - Append 100000 times: " << duration << " ms" << endl;
+        auto duration = chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        cout << "Performance Test - Append 1000000 times: " << duration << " ms" << endl;
 
         sds::destroy(obj);
         };

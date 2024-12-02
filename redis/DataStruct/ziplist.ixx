@@ -54,15 +54,10 @@ public:
 // internal functions
 void strEncode(std::uint8_t* str, size_t len, zlentry& entry);
 bool tryIntEncode(std::uint8_t* str, size_t len, zlentry& entry);
-
 ziplist* adjustSubsequentNodes(ziplist* zl, size_t offset, int diff);
 
 
 // outside functions
-export
-{
-	void entryDecode(std::uint8_t* p, zlentry& entry);
-	void entryEncode(std::uint8_t* p, zlentry& entry);
-
-	constexpr bool isStr(std::uint8_t encoding) { return (encoding & 0xC0) < 0xC0; }
-}
+export void entryDecode(std::uint8_t* p, zlentry& entry);
+export void entryEncode(std::uint8_t* p, zlentry& entry);
+export constexpr bool isStr(std::uint8_t encoding) { return (encoding & 0xC0) < 0xC0; }

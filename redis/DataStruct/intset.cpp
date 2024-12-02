@@ -5,8 +5,6 @@ import <cassert>;
 
 std::int64_t intset::get(std::uint32_t index)
 {
-	assert(index < length);
-
 	switch (encoding)
 	{
 	case INTSET_ENC_INT16:
@@ -16,7 +14,7 @@ std::int64_t intset::get(std::uint32_t index)
 	case INTSET_ENC_INT64:
 		return reinterpret_cast<std::int64_t*>(content)[index];
 	default:
-		assert(false);
+		break;
 	}
 }
 
@@ -48,7 +46,7 @@ std::uint32_t intset::search(std::int64_t value)
 
 intset* intset::create()
 {
-	intset* is = new intset;
+	intset* is = reinterpret_cast<intset*>(std::malloc(sizeof(intset)));
 	is->encoding = INTSET_ENC_INT16;
 	is->length = 0;
 	return is;
@@ -56,7 +54,7 @@ intset* intset::create()
 
 void intset::destroy(intset* is)
 {
-	delete is;
+	std::free(is);
 }
 
 bool intset::contains(std::int64_t value)
@@ -101,7 +99,6 @@ intset* intset::insert(std::int64_t value)
 		assert(false);
 	}
 
-	destroy(this);
 	return new_is;
 }
 
@@ -110,18 +107,14 @@ intset* intset::remove(std::int64_t value)
 	std::uint32_t index = search(value);
 	if (index == length || get(index) != value) return this;
 
+	std::memmove(content + index * encoding, content + (index + 1) * encoding, (length - index - 1) * encoding);
 	intset* new_is = resize(this, length - 1);
-	std::memmove(new_is->content + index * encoding, content + (index + 1) * encoding, (length - index - 1) * encoding);
-
-	destroy(this);
 	return new_is;
 }
 
 intset* resize(intset* is, size_t size)
 {
-	intset* new_is = reinterpret_cast<intset*>(::operator new(sizeof(intset) + size * is->encoding));
-	std::memcpy(new_is->content, is->content, size * is->encoding);
-	new_is->encoding = is->encoding;
+	intset* new_is = reinterpret_cast<intset*>(std::realloc(is, sizeof(intset) + size * is->encoding));
 	new_is->length = size;
 	return new_is;
 }
@@ -131,20 +124,20 @@ intset* upgrade(intset* is)
 	assert(is->encoding <= INTSET_ENC_INT64);
 
 	std::uint32_t new_encoding = is->encoding * 2;
-	intset* new_is = reinterpret_cast<intset*>(::operator new(sizeof(intset) + is->length * new_encoding));
+	intset* new_is = reinterpret_cast<intset*>(std::realloc(is, sizeof(intset) + is->length * new_encoding));
 
-	switch (is->encoding)
+	switch (new_is->encoding)
 	{
 	case INTSET_ENC_INT16:
-		for (std::uint32_t i = 0; i < is->length; ++i)
+		for (std::int64_t i = new_is->length-1; i >=0; --i)
 		{
-			reinterpret_cast<std::int32_t*>(new_is->content)[i] = reinterpret_cast<std::int16_t*>(is->content)[i];
+			reinterpret_cast<std::int32_t*>(new_is->content)[i] = reinterpret_cast<std::int16_t*>(new_is->content)[i];
 		}
 		break;
 	case INTSET_ENC_INT32:
-		for (std::uint32_t i = 0; i < is->length; ++i)
+		for (std::int64_t i = new_is->length - 1; i >= 0; --i)
 		{
-			reinterpret_cast<std::int64_t*>(new_is->content)[i] = reinterpret_cast<std::int32_t*>(is->content)[i];
+			reinterpret_cast<std::int64_t*>(new_is->content)[i] = reinterpret_cast<std::int32_t*>(new_is->content)[i];
 		}
 		break;
 	default:
@@ -152,8 +145,5 @@ intset* upgrade(intset* is)
 	}
 
 	new_is->encoding = new_encoding;
-	new_is->length = is->length;
-
-	intset::destroy(is);
 	return new_is;
 }

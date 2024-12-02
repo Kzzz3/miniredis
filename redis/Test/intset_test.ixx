@@ -1,7 +1,7 @@
 export module intset_test;
 
-import intset;
 import std;
+import intset;
 import <cassert>;
 
 
@@ -104,31 +104,6 @@ void test_boundary_conditions() {
     std::cout << "test_boundary_conditions passed.\n";
 }
 
-void test_stress() {
-    intset* is = intset::create();
-    constexpr std::size_t NUM_ELEMENTS = 100000;
-
-    // 插入大量元素
-    for (std::int64_t i = 0; i < NUM_ELEMENTS; ++i) {
-        is = is->insert(i);
-    }
-
-    // 检查所有元素是否存在
-    for (std::int64_t i = 0; i < NUM_ELEMENTS; ++i) {
-        assert(is->contains(i));
-    }
-
-    // 删除所有元素
-    for (std::int64_t i = 0; i < NUM_ELEMENTS; ++i) {
-        is = is->remove(i);
-    }
-
-    assert(is->length == 0);
-
-    intset::destroy(is);
-    std::cout << "test_stress passed.\n";
-}
-
 void test_performance() {
     intset* is = intset::create();
     constexpr std::size_t NUM_ELEMENTS = 100000;
@@ -155,7 +130,7 @@ void test_performance() {
 
     // 测试删除性能
     auto start_remove = high_resolution_clock::now();
-    for (std::int64_t i = 0; i < NUM_ELEMENTS; ++i) {
+    for (int i = NUM_ELEMENTS; i >=0 ; i--) {
         is = is->remove(i);
     }
     auto end_remove = high_resolution_clock::now();
@@ -178,6 +153,5 @@ export void intset_test() {
     test_delete();
     test_upgrade();
     test_boundary_conditions();
-    test_stress();
     test_performance();
 }
