@@ -1,13 +1,12 @@
-export module sds_test;
+#pragma once
+#include <chrono>
+#include <thread>
+#include <cassert>
+#include <iostream>
 
-import sds;
-import <chrono>;
-import <thread>;
-import <cstring>;
-import <cassert>;
-import <iostream>;
+#include "../DataStruct/sds.h"
 
-export void run_sds_tests() {
+inline void run_sds_tests() {
     using namespace std;
 
     // Test: Create with empty string
@@ -15,13 +14,13 @@ export void run_sds_tests() {
         const char* data = "";
         size_t len = std::strlen(data);
 
-        sds* obj = sds::create(data, len, len);
+        Sds* obj = Sds::create(data, len, len);
         assert(obj != nullptr);
         assert(obj->length() == 0);
         assert(obj->capacity() == 0);
         assert(std::strcmp(obj->buf, data) == 0);
 
-        sds::destroy(obj);
+        Sds::destroy(obj);
         };
 
     // Test: Create with maximum length within range
@@ -31,13 +30,13 @@ export void run_sds_tests() {
         std::fill(data, data + len, 'A');
         data[len] = '\0';
 
-        sds* obj = sds::create(data, len, len);
+        Sds* obj = Sds::create(data, len, len);
         assert(obj != nullptr);
         assert(obj->length() == len);
         assert(obj->capacity() == len);
         assert(std::strcmp(obj->buf, data) == 0);
 
-        sds::destroy(obj);
+        Sds::destroy(obj);
         };
 
     // Test: Append to empty string
@@ -45,14 +44,14 @@ export void run_sds_tests() {
         const char* append_data = "AppendMe";
         size_t append_len = std::strlen(append_data);
 
-        sds* obj = sds::create("", 0, append_len);
+        Sds* obj = Sds::create("", 0, append_len);
         obj = obj->append(append_data, append_len);
 
         assert(std::strcmp(obj->buf, append_data) == 0);
         assert(obj->length() == append_len);
         assert(obj->capacity() >= append_len);
 
-        sds::destroy(obj);
+        Sds::destroy(obj);
         };
 
     // Test: Append beyond capacity
@@ -62,14 +61,14 @@ export void run_sds_tests() {
         size_t len = std::strlen(data);
         size_t append_len = std::strlen(append_data);
 
-        sds* obj = sds::create(data, len, len);
+        Sds* obj = Sds::create(data, len, len);
         obj = obj->append(append_data, append_len);
 
         assert(std::strcmp(obj->buf, "DataMoreData") == 0);
         assert(obj->length() == len + append_len);
         assert(obj->capacity() >= len + append_len);
 
-        sds::destroy(obj);
+        Sds::destroy(obj);
         };
 
     // Test: Concurrent creation and destruction
@@ -79,9 +78,9 @@ export void run_sds_tests() {
 
         auto create_destroy = [data, len]() {
             for (int i = 0; i < 1000; ++i) {
-                sds* obj = sds::create(data, len, len);
+                Sds* obj = Sds::create(data, len, len);
                 assert(obj != nullptr);
-                sds::destroy(obj);
+                Sds::destroy(obj);
             }
             };
 
@@ -98,8 +97,8 @@ export void run_sds_tests() {
         size_t len = std::strlen(data);
 
         for (int i = 0; i < 1000000; ++i) {
-            sds* obj = sds::create(data, len, len);
-            sds::destroy(obj);
+            Sds* obj = Sds::create(data, len, len);
+            Sds::destroy(obj);
         }
 
         auto end = std::chrono::high_resolution_clock::now();
@@ -113,7 +112,7 @@ export void run_sds_tests() {
         const char* append_data = "AppendMe";
         size_t append_len = std::strlen(append_data);
 
-        sds* obj = sds::create("", 0, append_len);
+        Sds* obj = Sds::create("", 0, append_len);
         for (int i = 0; i < 1000000; ++i) {
             obj = obj->append(append_data, append_len);
         }
@@ -122,7 +121,7 @@ export void run_sds_tests() {
         auto duration = chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         cout << "Performance Test - Append 1000000 times: " << duration << " ms" << endl;
 
-        sds::destroy(obj);
+        Sds::destroy(obj);
         };
 
     // Test: Large string creation and manipulation
@@ -132,12 +131,12 @@ export void run_sds_tests() {
         std::fill(data, data + len, 'A');
         data[len] = '\0';
 
-        sds* obj = sds::create(data, len, len);
+        Sds* obj = Sds::create(data, len, len);
         assert(obj != nullptr);
         assert(obj->length() == len);
         assert(obj->capacity() >= len);
 
-        sds::destroy(obj);
+        Sds::destroy(obj);
         delete[] data;
         };
 

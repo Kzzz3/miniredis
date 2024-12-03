@@ -1,25 +1,23 @@
-module ziplist;
+#include "ziplist.h"
 
-import std;
-
-ziplist* ziplist::create()
+ZipList* ZipList::create()
 {
-	return reinterpret_cast<ziplist*>(std::malloc(sizeof(ziplist)));;
+	return reinterpret_cast<ZipList*>(std::malloc(sizeof(ZipList)));;
 }
 
-void ziplist::destroy(ziplist* zl)
+void ZipList::destroy(ZipList* zl)
 {
 	std::free(zl);
 }
 
-ziplist* ziplist::pop_back()
+ZipList* ZipList::pop_back()
 {
 	if (items_num == 0) return this;
 
-	zlentry entry;
+	ZlEntry entry;
 	entryDecode(buf + last_offset, entry);
 
-	ziplist* new_zl = reinterpret_cast<ziplist*>(std::realloc(this,sizeof(ziplist) + last_offset));
+	ZipList* new_zl = reinterpret_cast<ZipList*>(std::realloc(this,sizeof(ZipList) + last_offset));
 	new_zl->total_bytes = new_zl->last_offset;
 	new_zl->last_offset -= entry.prevrawlen;
 	new_zl->items_num--;
@@ -28,16 +26,16 @@ ziplist* ziplist::pop_back()
 	return new_zl;
 }
 
-ziplist* ziplist::pop_front()
+ZipList* ZipList::pop_front()
 {
 	if (items_num == 0) return this;
 
-	zlentry entry;
+	ZlEntry entry;
 	entryDecode(buf, entry);
 	size_t entry_size = entry.prevrawlensize + entry.lensize + entry.len;
 
 	std::memmove(buf, buf + entry_size, total_bytes - entry_size);
-	ziplist* new_zl = reinterpret_cast<ziplist*>(std::realloc(this, sizeof(ziplist) + total_bytes - entry_size));
+	ZipList* new_zl = reinterpret_cast<ZipList*>(std::realloc(this, sizeof(ZipList) + total_bytes - entry_size));
 	new_zl->total_bytes -= entry_size;
 	new_zl->last_offset = new_zl->items_num == 1 ? 0 : new_zl->last_offset - entry_size;
 	new_zl->items_num--;
@@ -46,51 +44,51 @@ ziplist* ziplist::pop_front()
 	return adjustSubsequentNodes(new_zl, 0, 0 - entry_size);
 }
 
-std::uint8_t* ziplist::index(int index)
+uint8_t* ZipList::index(int index)
 {
 	index = (index % items_num + items_num) % items_num;
 
-	std::uint8_t* p = buf;
+	uint8_t* p = buf;
 	for (int i = 0; i < index; ++i)
 	{
-		zlentry entry;
+		ZlEntry entry;
 		entryDecode(p, entry);
 		p += entry.prevrawlensize + entry.lensize + entry.len;
 	}
 	return p;
 }
 
-std::uint8_t* ziplist::next(std::uint8_t* p)
+uint8_t* ZipList::next(uint8_t* p)
 {
 	if (p[0] == ZIPLIST_END) return nullptr;
 
-	zlentry entry;
+	ZlEntry entry;
 	entryDecode(p, entry);
 	return p + entry.prevrawlensize + entry.lensize + entry.len;
 }
 
-std::uint8_t* ziplist::prev(std::uint8_t* p)
+uint8_t* ZipList::prev(uint8_t* p)
 {
 	if (p == buf) return nullptr;
 
-	zlentry entry;
+	ZlEntry entry;
 	entryDecode(p, entry);
 	return p - entry.prevrawlen;
 }
 
-ziplist* ziplist::push_back(std::uint8_t* str, size_t len)
+ZipList* ZipList::push_back(uint8_t* str, size_t len)
 {
 	return insert(buf + total_bytes, str, len);
 }
 
-ziplist* ziplist::push_front(std::uint8_t* str, size_t len)
+ZipList* ZipList::push_front(uint8_t* str, size_t len)
 {
 	return insert(buf, str, len);
 }
 
-ziplist* ziplist::insert(std::uint8_t* p, std::uint8_t* str, size_t len)
+ZipList* ZipList::insert(uint8_t* p, uint8_t* str, size_t len)
 {
-	zlentry new_entry;
+	ZlEntry new_entry;
 	if (items_num == 0)
 	{
 		new_entry.prevrawlen = 0;
@@ -98,14 +96,14 @@ ziplist* ziplist::insert(std::uint8_t* p, std::uint8_t* str, size_t len)
 	}
 	else if (p[0] != ZIPLIST_END)
 	{
-		zlentry entry;
+		ZlEntry entry;
 		entryDecode(p, entry);
 		new_entry.prevrawlen = entry.prevrawlen;
 		new_entry.prevrawlensize = entry.prevrawlensize;
 	}
 	else
 	{
-		zlentry entry;
+		ZlEntry entry;
 		entryDecode(buf + last_offset, entry);
 		new_entry.prevrawlen = entry.prevrawlensize + entry.lensize + entry.len;
 		new_entry.prevrawlensize = new_entry.prevrawlen < 254 ? 1 : 5;
@@ -118,7 +116,7 @@ ziplist* ziplist::insert(std::uint8_t* p, std::uint8_t* str, size_t len)
 
 	size_t offset = p - buf;
 	size_t new_entry_size = new_entry.prevrawlensize + new_entry.lensize + new_entry.len;
-	ziplist* new_zl = reinterpret_cast<ziplist*>(std::realloc(this, sizeof(ziplist) + total_bytes + new_entry_size));
+	ZipList* new_zl = reinterpret_cast<ZipList*>(std::realloc(this, sizeof(ZipList) + total_bytes + new_entry_size));
 
 	std::memmove(new_zl->buf + offset + new_entry_size, new_zl->buf + offset, new_zl->total_bytes - offset);
 	entryEncode(new_zl->buf + offset, new_entry);
@@ -131,7 +129,7 @@ ziplist* ziplist::insert(std::uint8_t* p, std::uint8_t* str, size_t len)
 	return adjustSubsequentNodes(new_zl, offset + new_entry_size, new_entry_size - new_entry.prevrawlen);
 }
 
-void entryEncode(std::uint8_t* p, zlentry& entry)
+void entryEncode(uint8_t* p, ZlEntry& entry)
 {
 	//prevrawlen
 	if (entry.prevrawlensize == 1)
@@ -154,7 +152,7 @@ void entryEncode(std::uint8_t* p, zlentry& entry)
 		}
 		else if (entry.lensize == 2)
 		{
-			std::uint16_t temp = 0x3fff & entry.len;
+			uint16_t temp = 0x3fff & entry.len;
 			p[0] = temp >> 8 | entry.encoding;
 			p[1] = temp & 0xff;
 		}
@@ -171,10 +169,10 @@ void entryEncode(std::uint8_t* p, zlentry& entry)
 
 	p[0] = entry.encoding;
 	p += entry.lensize;
-	reinterpret_cast<std::uint64_t*>(p)[0] = entry.data.num;
+	reinterpret_cast<uint64_t*>(p)[0] = entry.data.num;
 }
 
-void entryDecode(std::uint8_t* p, zlentry& entry)
+void entryDecode(uint8_t* p, ZlEntry& entry)
 {
 	//prevrawlen
 	if (p[0] == ZIPLIST_PREVLEN_FIRST)
@@ -214,11 +212,11 @@ void entryDecode(std::uint8_t* p, zlentry& entry)
 	{
 		entry.len = 8;
 		entry.lensize = 1;
-		entry.data.num = reinterpret_cast<std::uint64_t*>(p + 1)[0];
+		entry.data.num = reinterpret_cast<uint64_t*>(p + 1)[0];
 	}
 }
 
-bool tryIntEncode(std::uint8_t* str, size_t len, zlentry& entry)
+bool tryIntEncode(uint8_t* str, size_t len, ZlEntry& entry)
 {
 	std::string temp(reinterpret_cast<char*>(str), len);
 	try
@@ -238,7 +236,7 @@ bool tryIntEncode(std::uint8_t* str, size_t len, zlentry& entry)
 	}
 }
 
-void strEncode(std::uint8_t* str, size_t len, zlentry& entry)
+void strEncode(uint8_t* str, size_t len, ZlEntry& entry)
 {
 	entry.data.ptr = str;
 	entry.len = len;
@@ -259,12 +257,12 @@ void strEncode(std::uint8_t* str, size_t len, zlentry& entry)
 	}
 }
 
-ziplist* adjustSubsequentNodes(ziplist* zl, size_t offset, int diff)
+ZipList* adjustSubsequentNodes(ZipList* zl, size_t offset, int diff)
 {
-	ziplist* ret = zl;
+	ZipList* ret = zl;
 	while (ret->buf[offset] != ZIPLIST_END)
 	{
-		zlentry entry;
+		ZlEntry entry;
 		entryDecode(ret->buf + offset, entry);
 
 		size_t oldprevlensize = entry.prevrawlensize;
@@ -282,15 +280,15 @@ ziplist* adjustSubsequentNodes(ziplist* zl, size_t offset, int diff)
 		size_t old_entry_size = oldprevlensize + entry.lensize + entry.len;
 		size_t new_entry_size = entry.prevrawlensize + entry.lensize + entry.len;
 
-		ziplist* new_zl = nullptr;
+		ZipList* new_zl = nullptr;
 		if (diff<0)
 		{
 			std::memmove(ret->buf + offset + new_entry_size, ret->buf + offset + old_entry_size, ret->total_bytes - offset - old_entry_size);
-			new_zl = reinterpret_cast<ziplist*>(std::realloc(ret, sizeof(ziplist) + ret->total_bytes + diff));
+			new_zl = reinterpret_cast<ZipList*>(std::realloc(ret, sizeof(ZipList) + ret->total_bytes + diff));
 		}
 		else
 		{
-			new_zl = reinterpret_cast<ziplist*>(std::realloc(ret, sizeof(ziplist) + ret->total_bytes + diff));
+			new_zl = reinterpret_cast<ZipList*>(std::realloc(ret, sizeof(ZipList) + ret->total_bytes + diff));
 			std::memmove(new_zl->buf + offset + new_entry_size, new_zl->buf + offset + old_entry_size, ret->total_bytes - offset - old_entry_size);
 		}
 		entryEncode(new_zl->buf + offset, entry);

@@ -18,6 +18,34 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="command.cpp" />
+    <ClCompile Include="DataStruct\intset.cpp" />
+    <ClCompile Include="DataStruct\sds.cpp" />
+    <ClCompile Include="DataStruct\ziplist.cpp" />
+    <ClCompile Include="DataType\redisobj.cpp" />
+    <ClCompile Include="miniredis.cpp" />
+    <ClCompile Include="server.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="command.h" />
+    <ClInclude Include="DataStruct\dict.h" />
+    <ClInclude Include="DataStruct\intset.h" />
+    <ClInclude Include="DataStruct\linkedlist.h" />
+    <ClInclude Include="DataStruct\rbt.h" />
+    <ClInclude Include="DataStruct\sds.h" />
+    <ClInclude Include="DataStruct\ziplist.h" />
+    <ClInclude Include="DataType\redisobj.h" />
+    <ClInclude Include="db.h" />
+    <ClInclude Include="Networking\connection.h" />
+    <ClInclude Include="server.h" />
+    <ClInclude Include="test.h" />
+    <ClInclude Include="Test\dict_test.h" />
+    <ClInclude Include="Test\intset_test.h" />
+    <ClInclude Include="Test\sds_test.h" />
+    <ClInclude Include="Test\ziplist_test.h" />
+    <ClInclude Include="utility.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -105,9 +133,9 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
-      <ScanSourceForModuleDependencies>true</ScanSourceForModuleDependencies>
-      <EnableModules>true</EnableModules>
-      <BuildStlModules>true</BuildStlModules>
+      <ScanSourceForModuleDependencies>false</ScanSourceForModuleDependencies>
+      <EnableModules>false</EnableModules>
+      <BuildStlModules>false</BuildStlModules>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
     </ClCompile>
     <Link>
@@ -131,32 +159,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="command.cpp" />
-    <ClCompile Include="command.ixx" />
-    <ClCompile Include="DataType\redisobj.cpp" />
-    <ClCompile Include="server.cpp" />
-    <ClCompile Include="utility.ixx" />
-    <ClCompile Include="db.ixx" />
-    <ClCompile Include="DataStruct\dict.ixx" />
-    <ClCompile Include="DataStruct\intset.cpp" />
-    <ClCompile Include="DataStruct\intset.ixx" />
-    <ClCompile Include="Networking\connection.ixx" />
-    <ClCompile Include="Test\dict_test.ixx" />
-    <ClCompile Include="Test\intset_test.ixx" />
-    <ClCompile Include="DataStruct\linkedlist.ixx" />
-    <ClCompile Include="DataStruct\rbt.ixx" />
-    <ClCompile Include="DataStruct\sds.cpp" />
-    <ClCompile Include="DataStruct\sds.ixx" />
-    <ClCompile Include="Test\sds_test.ixx" />
-    <ClCompile Include="DataStruct\ziplist.cpp" />
-    <ClCompile Include="DataStruct\ziplist.ixx" />
-    <ClCompile Include="Test\ziplist_test.ixx" />
-    <ClCompile Include="DataType\redisobj.ixx" />
-    <ClCompile Include="redis.cpp" />
-    <ClCompile Include="server.ixx" />
-    <ClCompile Include="test.ixx" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

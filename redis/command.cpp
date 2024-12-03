@@ -1,4 +1,4 @@
-module command;
+#include "command.h"
 
 std::unordered_map<std::string, std::function<void(Connection& conn, Command&)>> commands_map = {
 	{"set", CmdSet },
@@ -15,12 +15,14 @@ std::unordered_map<std::string, std::function<void(Connection& conn, Command&)>>
 	{ "zadd", CmdZAdd }
 };
 
-std::function<void(Connection& conn, Command&)> GetCommandHandler(sds*& cmd)
+std::function<void(Connection& conn, Command&)> GetCommandHandler(Sds*& cmd)
 {
-	std::string strcmd = std::string(cmd->buf, cmd->length());
-	if (commands_map.find(strcmd) != commands_map.end())
+	std::string command = std::string(cmd->buf, cmd->length());
+	std::transform(command.begin(), command.end(), command.begin(), ::tolower);
+	auto it = commands_map.find(command);
+	if (it != commands_map.end())
 	{
-		return commands_map[strcmd];
+		return it->second;
 	}
 	return nullptr;
 }
@@ -44,8 +46,7 @@ void CmdGet(Connection& conn, Command& cmd)
 		return;
 	}
 
-	sds* str = reinterpret_cast<sds*>(reinterpret_cast<RedisObj*>(db->kvstore[cmd[1]].val)->ptr);
-	conn.buffer->sputn(str->buf, str->length());
+	Sds* str = reinterpret_cast<Sds*>(reinterpret_cast<RedisObj*>(db->kvstore[cmd[1]].val)->ptr);
 }
 
 void CmdHSet(Connection& conn, Command& cmd)

@@ -1,16 +1,16 @@
-module;
-export module command;
+#pragma once
+#include <vector>
+#include <functional>
+#include <unordered_map>
 
-import db;
-import sds;
-import std;
-import redisobj;
-import connection;
+#include "DataStruct/sds.h"
+#include "DataType/redisobj.h"
+#include "Networking/connection.h"
 
-export using Command = std::vector<sds*>;
+using Command = std::vector<Sds*>;
 using CommandMap = std::unordered_map<std::string, std::function<void(Connection& conn, Command&)>>;
 
-export std::function<void(Connection& conn, Command&)> GetCommandHandler(sds*& cmd);
+std::function<void(Connection& conn, Command&)> GetCommandHandler(Sds*& cmd);
 
 void CmdSet(Connection& conn, Command& cmd);
 void CmdGet(Connection& conn, Command& cmd);

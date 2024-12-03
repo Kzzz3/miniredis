@@ -1,20 +1,21 @@
-export module intset_test;
+#pragma once
 
-import std;
-import intset;
-import <cassert>;
+#include <chrono>
+#include <cassert>
+
+#include "../DataStruct/intset.h"
 
 
-void test_create_and_destroy() {
-    intset* is = intset::create();
+inline void test_create_and_destroy() {
+    IntSet* is = IntSet::create();
     assert(is->length == 0);
     assert(is->encoding == INTSET_ENC_INT16);
-    intset::destroy(is);
+    IntSet::destroy(is);
     std::cout << "test_create_and_destroy passed.\n";
 }
 
-void test_insert_and_contains() {
-    intset* is = intset::create();
+inline void test_insert_and_contains() {
+    IntSet* is = IntSet::create();
 
     // 插入一些值并检查
     is = is->insert(10);
@@ -31,12 +32,12 @@ void test_insert_and_contains() {
     assert(is->get(1) == 10);
     assert(is->get(2) == 20);
 
-    intset::destroy(is);
+    IntSet::destroy(is);
     std::cout << "test_insert_and_contains passed.\n";
 }
 
-void test_delete() {
-    intset* is = intset::create();
+inline void test_delete() {
+    IntSet* is = IntSet::create();
 
     // 插入值
     is = is->insert(10);
@@ -57,12 +58,12 @@ void test_delete() {
     is = is->remove(15); // 不应发生错误
     assert(is->length == 2);
 
-    intset::destroy(is);
+    IntSet::destroy(is);
     std::cout << "test_delete passed.\n";
 }
 
-void test_upgrade() {
-    intset* is = intset::create();
+inline void test_upgrade() {
+    IntSet* is = IntSet::create();
 
     // 插入触发升级
     is = is->insert(std::numeric_limits<std::int16_t>::max());
@@ -77,12 +78,12 @@ void test_upgrade() {
     assert(is->contains(std::numeric_limits<std::int32_t>::max()));
     assert(is->contains(std::numeric_limits<std::int64_t>::max()));
 
-    intset::destroy(is);
+    IntSet::destroy(is);
     std::cout << "test_upgrade passed.\n";
 }
 
-void test_boundary_conditions() {
-    intset* is = intset::create();
+inline void test_boundary_conditions() {
+    IntSet* is = IntSet::create();
 
     // 测试插入边界值
     is = is->insert(std::numeric_limits<std::int16_t>::min());
@@ -100,12 +101,12 @@ void test_boundary_conditions() {
     assert(is->contains(std::numeric_limits<std::int64_t>::min()));
     assert(is->contains(std::numeric_limits<std::int64_t>::max()));
 
-    intset::destroy(is);
+    IntSet::destroy(is);
     std::cout << "test_boundary_conditions passed.\n";
 }
 
-void test_performance() {
-    intset* is = intset::create();
+inline void test_performance() {
+    IntSet* is = IntSet::create();
     constexpr std::size_t NUM_ELEMENTS = 100000;
 
     using namespace std::chrono;
@@ -139,7 +140,7 @@ void test_performance() {
 
     assert(is->length == 0);
 
-    intset::destroy(is);
+    IntSet::destroy(is);
 
     // 总耗时
     auto total_duration = insert_duration + query_duration + remove_duration;
@@ -147,7 +148,7 @@ void test_performance() {
     std::cout << "test_performance passed.\n";
 }
 
-export void intset_test() {
+inline void intset_test() {
     test_create_and_destroy();
     test_insert_and_contains();
     test_delete();

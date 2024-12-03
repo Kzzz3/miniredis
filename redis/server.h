@@ -1,14 +1,15 @@
-module;
+#pragma once
 
 #include <asio.hpp>
 
-export module server;
+#include <vector>
+#include <iostream>
+#include <exception>
 
-import db;
-import sds;
-import dict;
-import command;
-import connection;
+#include "utility.h"
+#include "command.h"
+#include "DataType/redisobj.h"
+#include "Networking/connection.h"
 
 using std::vector;
 using asio::ip::tcp;
@@ -18,14 +19,13 @@ using asio::awaitable;
 using asio::use_awaitable;
 namespace this_coro = asio::this_coro;
 
-export class server
+class server
 {
 public:
 	asio::io_context io_context;
 	std::atomic<uint64_t> connection_id = 0;
 
-	RedisDb databases[16];
-	
+	RedisDb databases;
 
 public:
 	void start();

@@ -1,9 +1,6 @@
-module intset;
+#include "intset.h"
 
-import std;
-import <cassert>;
-
-std::int64_t intset::get(std::uint32_t index)
+std::int64_t IntSet::get(uint32_t index)
 {
 	switch (encoding)
 	{
@@ -18,7 +15,7 @@ std::int64_t intset::get(std::uint32_t index)
 	}
 }
 
-std::uint32_t intset::search(std::int64_t value)
+uint32_t IntSet::search(std::int64_t value)
 {
 	std::int64_t middle_value = 0;
 	std::int64_t middle = 0, left = 0, right = length;
@@ -44,28 +41,28 @@ std::uint32_t intset::search(std::int64_t value)
 	return left;
 }
 
-intset* intset::create()
+IntSet* IntSet::create()
 {
-	intset* is = reinterpret_cast<intset*>(std::malloc(sizeof(intset)));
+	IntSet* is = reinterpret_cast<IntSet*>(std::malloc(sizeof(IntSet)));
 	is->encoding = INTSET_ENC_INT16;
 	is->length = 0;
 	return is;
 }
 
-void intset::destroy(intset* is)
+void IntSet::destroy(IntSet* is)
 {
 	std::free(is);
 }
 
-bool intset::contains(std::int64_t value)
+bool IntSet::contains(std::int64_t value)
 {
-	std::uint32_t index = search(value);
+	uint32_t index = search(value);
 	return index != length && get(index) == value;
 }
 
-intset* intset::insert(std::int64_t value)
+IntSet* IntSet::insert(std::int64_t value)
 {
-	std::uint32_t value_encoding = INTSET_ENC_INT16;
+	uint32_t value_encoding = INTSET_ENC_INT16;
 	if (value > std::numeric_limits<std::int32_t>::max()||value<std::numeric_limits<std::int32_t>::min())
 	{
 		value_encoding = INTSET_ENC_INT64;
@@ -79,9 +76,9 @@ intset* intset::insert(std::int64_t value)
 		return upgrade(this)->insert(value);
 	}
 
-	std::uint32_t index = search(value);
+	uint32_t index = search(value);
 
-	intset* new_is = resize(this, length + 1);
+	IntSet* new_is = resize(this, length + 1);
 	std::memmove(new_is->content + (index + 1) * encoding, new_is->content + index * encoding, (length - index) * encoding);
 
 	switch (encoding)
@@ -102,29 +99,29 @@ intset* intset::insert(std::int64_t value)
 	return new_is;
 }
 
-intset* intset::remove(std::int64_t value)
+IntSet* IntSet::remove(std::int64_t value)
 {
-	std::uint32_t index = search(value);
+	uint32_t index = search(value);
 	if (index == length || get(index) != value) return this;
 
 	std::memmove(content + index * encoding, content + (index + 1) * encoding, (length - index - 1) * encoding);
-	intset* new_is = resize(this, length - 1);
+	IntSet* new_is = resize(this, length - 1);
 	return new_is;
 }
 
-intset* resize(intset* is, size_t size)
+IntSet* resize(IntSet* is, size_t size)
 {
-	intset* new_is = reinterpret_cast<intset*>(std::realloc(is, sizeof(intset) + size * is->encoding));
+	IntSet* new_is = reinterpret_cast<IntSet*>(std::realloc(is, sizeof(IntSet) + size * is->encoding));
 	new_is->length = size;
 	return new_is;
 }
 
-intset* upgrade(intset* is)
+IntSet* upgrade(IntSet* is)
 {
 	assert(is->encoding <= INTSET_ENC_INT64);
 
-	std::uint32_t new_encoding = is->encoding * 2;
-	intset* new_is = reinterpret_cast<intset*>(std::realloc(is, sizeof(intset) + is->length * new_encoding));
+	uint32_t new_encoding = is->encoding * 2;
+	IntSet* new_is = reinterpret_cast<IntSet*>(std::realloc(is, sizeof(IntSet) + is->length * new_encoding));
 
 	switch (new_is->encoding)
 	{

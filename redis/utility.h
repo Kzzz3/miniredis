@@ -1,12 +1,11 @@
-export module utility;
+#pragma once
+#include <chrono>
+#include <optional>
+#include <charconv>
 
-import std;
-
-using std::int64_t;
-using std::uint64_t;
 using std::optional;
 
-export optional<int64_t> str2ll(const char* str, size_t len) {
+constexpr optional<int64_t> str2ll(const char* str, size_t len) {
     if (str == nullptr || len == 0) {
         return std::nullopt;
     }
@@ -21,6 +20,6 @@ export optional<int64_t> str2ll(const char* str, size_t len) {
     return std::nullopt;
 }
 
-export uint64_t GetSecTimestamp() {
-	return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+constexpr uint64_t GetSecTimestamp() {
+    return std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
