@@ -33,9 +33,6 @@
     <ClCompile Include="DataStruct\ziplist.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="DataType\redisobj.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="command.h">
@@ -50,9 +47,6 @@
     <ClInclude Include="test.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="utility.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="DataStruct\dict.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -62,7 +56,7 @@
     <ClInclude Include="DataStruct\linkedlist.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="DataStruct\rbt.h">
+    <ClInclude Include="DataStruct\zset.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="DataStruct\sds.h">
@@ -77,9 +71,6 @@
     <ClInclude Include="Networking\connection.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Test\dict_test.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="Test\intset_test.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -87,6 +78,27 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Test\ziplist_test.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DataType\hashobj.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DataType\listobj.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DataType\setobj.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DataType\stringobj.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DataType\zsetobj.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="utility.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Test\zset_test.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,11 +1,12 @@
 ﻿#include "test.h"
 #include "server.h"
+#include <iostream>
 
 int main()
 {
 	//test();
 	//std::cout << "<-----------------------------------test passed----------------------------------->" << std::endl;
-	server s;
+	Server s;
 	s.start();
 	return 0;
 }

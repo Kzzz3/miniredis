@@ -169,7 +169,7 @@ void entryEncode(uint8_t* p, ZlEntry& entry)
 
 	p[0] = entry.encoding;
 	p += entry.lensize;
-	reinterpret_cast<uint64_t*>(p)[0] = entry.data.num;
+	reinterpret_cast<int64_t*>(p)[0] = entry.data.num;
 }
 
 void entryDecode(uint8_t* p, ZlEntry& entry)
@@ -212,7 +212,7 @@ void entryDecode(uint8_t* p, ZlEntry& entry)
 	{
 		entry.len = 8;
 		entry.lensize = 1;
-		entry.data.num = reinterpret_cast<uint64_t*>(p + 1)[0];
+		entry.data.num = reinterpret_cast<int64_t*>(p + 1)[0];
 	}
 }
 
@@ -221,13 +221,13 @@ bool tryIntEncode(uint8_t* str, size_t len, ZlEntry& entry)
 	std::string temp(reinterpret_cast<char*>(str), len);
 	try
 	{
-		size_t pos = 0;
-		entry.data.num = std::stoull(temp, &pos);
-		if (pos != len) return false; // Ensure full match
+		auto value = str2num<int64_t>(reinterpret_cast<char*>(str), len);
+		if (!value.has_value()) return false; // Ensure full match
 
 		entry.len = 8;
 		entry.lensize = 1;
 		entry.encoding = ZIPLIST_INT_64B; // Update encoding flag
+		entry.data.num = value.value();
 		return true;
 	}
 	catch (...)

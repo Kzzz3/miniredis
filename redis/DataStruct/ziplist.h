@@ -3,6 +3,8 @@
 #include <memory>
 #include <cstdint>
 
+#include "../utility.hpp"
+
 constexpr uint8_t ZIPLIST_END = 0xff;
 constexpr uint8_t ZIPLIST_INT_64B = 0xe0;
 constexpr uint8_t ZIPLIST_STR_06B = 0x00;
@@ -21,8 +23,8 @@ struct ZlEntry
 	uint8_t encoding = 0;
 	union
 	{
-		uint64_t num;
 		uint8_t* ptr;
+		int64_t num;
 	} data;
 };
 

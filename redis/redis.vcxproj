@@ -23,7 +23,6 @@
     <ClCompile Include="DataStruct\intset.cpp" />
     <ClCompile Include="DataStruct\sds.cpp" />
     <ClCompile Include="DataStruct\ziplist.cpp" />
-    <ClCompile Include="DataType\redisobj.cpp" />
     <ClCompile Include="miniredis.cpp" />
     <ClCompile Include="server.cpp" />
   </ItemGroup>
@@ -32,19 +31,24 @@
     <ClInclude Include="DataStruct\dict.h" />
     <ClInclude Include="DataStruct\intset.h" />
     <ClInclude Include="DataStruct\linkedlist.h" />
-    <ClInclude Include="DataStruct\rbt.h" />
+    <ClInclude Include="DataStruct\zset.h" />
     <ClInclude Include="DataStruct\sds.h" />
     <ClInclude Include="DataStruct\ziplist.h" />
+    <ClInclude Include="DataType\hashobj.hpp" />
+    <ClInclude Include="DataType\listobj.hpp" />
     <ClInclude Include="DataType\redisobj.h" />
+    <ClInclude Include="DataType\setobj.hpp" />
+    <ClInclude Include="DataType\stringobj.hpp" />
+    <ClInclude Include="DataType\zsetobj.hpp" />
     <ClInclude Include="db.h" />
     <ClInclude Include="Networking\connection.h" />
     <ClInclude Include="server.h" />
     <ClInclude Include="test.h" />
-    <ClInclude Include="Test\dict_test.h" />
     <ClInclude Include="Test\intset_test.h" />
     <ClInclude Include="Test\sds_test.h" />
     <ClInclude Include="Test\ziplist_test.h" />
-    <ClInclude Include="utility.h" />
+    <ClInclude Include="Test\zset_test.hpp" />
+    <ClInclude Include="utility.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

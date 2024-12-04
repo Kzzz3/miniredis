@@ -1,16 +1,25 @@
 #include "server.h"
 
-void server::start()
+Server server;
+uint32_t DATABASE_NUM = 16;
+
+Server::Server() :
+	connection_id(0),
+	databases(DATABASE_NUM)
+{
+}
+
+void Server::start()
 {
     co_spawn(io_context, listener(), detached);
 	asio::signal_set signals(io_context, SIGINT, SIGTERM);
 	signals.async_wait([&](const asio::error_code&, int) { io_context.stop(); });
 
-    io_context.run();
+	io_context.run();
 }
 
 
-awaitable<void> server::listener()
+awaitable<void> Server::listener()
 {
     auto executor = co_await this_coro::executor;
     tcp::acceptor acceptor(executor, { tcp::v4(), 10087 });
@@ -18,18 +27,19 @@ awaitable<void> server::listener()
     {
         tcp::socket socket = co_await acceptor.async_accept(use_awaitable);
 
-		Connection conn(connection_id, std::move(socket));
-		conn.db = &databases;
+		Connection conn(connection_id++, std::move(socket));
         co_spawn(executor, handleConnection(std::move(conn)), detached);
     }
 }
 
-awaitable<void> server::handleConnection(Connection conn) {
+awaitable<void> Server::handleConnection(Connection conn) {
 	conn.state = ConnectionState::CONN_STATE_CONNECTED;
 
 	for (;;) {
 		//read mutibulk len
 		Command cmd = co_await readCommandFromClient(conn);
+
+		//command process
 
 		//execute command
 		std::function<void(Connection& conn, Command&)> handler = GetCommandHandler(cmd[0]);
@@ -43,11 +53,7 @@ awaitable<void> server::handleConnection(Connection conn) {
 	}
 }
 
-/**
-* test command(set/get key value)
-* 2a330d0a24330d0a5345540d0a24330d0a6b65790d0a24350d0a76616c75650d0a2a320d0a24330d0a4745540d0a24330d0a6b65790d0a
-*/
-awaitable<Command> server::readCommandFromClient(Connection& conn)
+awaitable<Command> Server::readCommandFromClient(Connection& conn)
 {
 	size_t n = co_await async_read_until(conn.socket, *conn.read_buffer, "\r\n", use_awaitable);
 	if (n == 0) {
@@ -109,4 +115,9 @@ awaitable<Command> server::readCommandFromClient(Connection& conn)
 		}
 	}
 	co_return cmd;
+}
+
+RedisDb* Server::selectDb(Sds* key)
+{
+	return &databases[std::hash<Sds*>{}(key) % DATABASE_NUM];
 }

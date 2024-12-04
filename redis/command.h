@@ -3,9 +3,17 @@
 #include <functional>
 #include <unordered_map>
 
+#include "db.h"
 #include "DataStruct/sds.h"
-#include "DataType/redisobj.h"
+#include "DataType/setobj.hpp"
+#include "DataType/zsetobj.hpp"
+#include "DataType/hashobj.hpp"
+#include "DataType/listobj.hpp"
+#include "DataType/stringobj.hpp"
 #include "Networking/connection.h"
+
+class Server;
+extern Server server;
 
 using Command = std::vector<Sds*>;
 using CommandMap = std::unordered_map<std::string, std::function<void(Connection& conn, Command&)>>;
@@ -28,3 +36,7 @@ void CmdSMembers(Connection& conn, Command& cmd);
 void CmdSisMember(Connection& conn, Command& cmd);
 
 void CmdZAdd(Connection& conn, Command& cmd);
+void CmdZRange(Connection& conn, Command& cmd);
+
+Sds* GenerateReply(std::vector<Sds*>& result);
+Sds* GenerateErrorReply(Sds* errmsg);

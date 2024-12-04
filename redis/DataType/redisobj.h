@@ -2,12 +2,9 @@
 #include <memory>
 #include <cstdint>
 
-#include "../utility.h"
-#include "../DataStruct/sds.h"
-
 constexpr size_t EMBSTR_MAX_LENGTH = 41;
 
-enum class ObjType 
+enum class ObjType
 	:uint8_t
 {
 	REDIS_STRING,
@@ -17,7 +14,7 @@ enum class ObjType
 	REDIS_ZSET
 };
 
-enum class ObjEncoding 
+enum class ObjEncoding
 	:uint8_t
 {
 	REDIS_ENCODING_INT,
@@ -37,18 +34,13 @@ public:
 	ObjType type;
 	ObjEncoding encoding;
 
-	void* ptr;
+	union 
+	{
+		void* ptr;
+		int64_t num;
+	}data;
 	uint32_t lru;
 	uint32_t refcount;
 };
 #pragma pack(pop)
 
-RedisObj* CreateStringObject(const char* str, size_t len);
-
-RedisObj* CreateHashObject(const char* field, const char* value, size_t field_len, size_t value_len);
-
-RedisObj* CreateListObject(const char* value, size_t len);
-
-RedisObj* CreateSetObject(const char* member, size_t len);
-
-RedisObj* CreateZsetObject(const char* member, double score);

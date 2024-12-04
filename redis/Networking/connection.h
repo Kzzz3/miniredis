@@ -2,8 +2,6 @@
 
 #include <asio.hpp>
 
-#include "../db.h"
-
 using asio::ip::tcp;
 using asio::streambuf;
 using std::unique_ptr;
@@ -28,8 +26,6 @@ public:
 	ConnectionState state;
 	unique_ptr<streambuf> read_buffer;
 	unique_ptr<streambuf> write_buffer;
-
-	RedisDb* db;
 
 public:
     Connection(uint64_t id, tcp::socket&& socket): 

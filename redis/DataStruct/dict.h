@@ -3,13 +3,6 @@
 #include <unordered_map>
 
 #include "sds.h"
+#include "../DataType/redisobj.h"
 
-union DictVal
-{
-    void* val;
-    double dnum;
-    std::int64_t i64num;
-    uint64_t u64num;
-};
-
-using Dict = std::unordered_map<Sds*, DictVal>;
+using Dict = std::unordered_map<Sds*, RedisObj*>;

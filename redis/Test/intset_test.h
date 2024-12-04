@@ -66,17 +66,17 @@ inline void test_upgrade() {
     IntSet* is = IntSet::create();
 
     // 插入触发升级
-    is = is->insert(std::numeric_limits<std::int16_t>::max());
-    is = is->insert(std::numeric_limits<std::int32_t>::max()); // 应触发升级到 INT32
+    is = is->insert(std::numeric_limits<int16_t>::max());
+    is = is->insert(std::numeric_limits<int32_t>::max()); // 应触发升级到 INT32
     assert(is->encoding == INTSET_ENC_INT32);
 
-    is = is->insert(std::numeric_limits<std::int64_t>::max()); // 应触发升级到 INT64
+    is = is->insert(std::numeric_limits<int64_t>::max()); // 应触发升级到 INT64
     assert(is->encoding == INTSET_ENC_INT64);
 
     // 检查值是否正确
-    assert(is->contains(std::numeric_limits<std::int16_t>::max()));
-    assert(is->contains(std::numeric_limits<std::int32_t>::max()));
-    assert(is->contains(std::numeric_limits<std::int64_t>::max()));
+    assert(is->contains(std::numeric_limits<int16_t>::max()));
+    assert(is->contains(std::numeric_limits<int32_t>::max()));
+    assert(is->contains(std::numeric_limits<int64_t>::max()));
 
     IntSet::destroy(is);
     std::cout << "test_upgrade passed.\n";
@@ -86,20 +86,20 @@ inline void test_boundary_conditions() {
     IntSet* is = IntSet::create();
 
     // 测试插入边界值
-    is = is->insert(std::numeric_limits<std::int16_t>::min());
-    is = is->insert(std::numeric_limits<std::int16_t>::max());
-    is = is->insert(std::numeric_limits<std::int32_t>::min());
-    is = is->insert(std::numeric_limits<std::int32_t>::max());
-    is = is->insert(std::numeric_limits<std::int64_t>::min());
-    is = is->insert(std::numeric_limits<std::int64_t>::max());
+    is = is->insert(std::numeric_limits<int16_t>::min());
+    is = is->insert(std::numeric_limits<int16_t>::max());
+    is = is->insert(std::numeric_limits<int32_t>::min());
+    is = is->insert(std::numeric_limits<int32_t>::max());
+    is = is->insert(std::numeric_limits<int64_t>::min());
+    is = is->insert(std::numeric_limits<int64_t>::max());
 
     // 检查边界值
-    assert(is->contains(std::numeric_limits<std::int16_t>::min()));
-    assert(is->contains(std::numeric_limits<std::int16_t>::max()));
-    assert(is->contains(std::numeric_limits<std::int32_t>::min()));
-    assert(is->contains(std::numeric_limits<std::int32_t>::max()));
-    assert(is->contains(std::numeric_limits<std::int64_t>::min()));
-    assert(is->contains(std::numeric_limits<std::int64_t>::max()));
+    assert(is->contains(std::numeric_limits<int16_t>::min()));
+    assert(is->contains(std::numeric_limits<int16_t>::max()));
+    assert(is->contains(std::numeric_limits<int32_t>::min()));
+    assert(is->contains(std::numeric_limits<int32_t>::max()));
+    assert(is->contains(std::numeric_limits<int64_t>::min()));
+    assert(is->contains(std::numeric_limits<int64_t>::max()));
 
     IntSet::destroy(is);
     std::cout << "test_boundary_conditions passed.\n";
@@ -113,7 +113,7 @@ inline void test_performance() {
 
     // 测试插入性能
     auto start_insert = high_resolution_clock::now();
-    for (std::int64_t i = 0; i < NUM_ELEMENTS; ++i) {
+    for (int64_t i = 0; i < NUM_ELEMENTS; ++i) {
         is = is->insert(i);
     }
     auto end_insert = high_resolution_clock::now();
@@ -122,7 +122,7 @@ inline void test_performance() {
 
     // 测试查询性能
     auto start_query = high_resolution_clock::now();
-    for (std::int64_t i = 0; i < NUM_ELEMENTS; ++i) {
+    for (int64_t i = 0; i < NUM_ELEMENTS; ++i) {
         assert(is->contains(i));
     }
     auto end_query = high_resolution_clock::now();
