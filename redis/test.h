@@ -6,8 +6,8 @@
 
 inline void test()
 {
-	//run_sds_tests();
-	//run_ziplist_tests();
-	//intset_test();
+	run_sds_tests();
+	run_ziplist_tests();
+	intset_test();
 	zset_test();
 }

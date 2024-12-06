@@ -2,7 +2,12 @@
 
 ZipList* ZipList::create()
 {
-	return reinterpret_cast<ZipList*>(std::malloc(sizeof(ZipList)));;
+	ZipList* zl = reinterpret_cast<ZipList*>(std::malloc(sizeof(ZipList)));
+	zl->total_bytes = 0;
+	zl->last_offset = 0;
+	zl->items_num = 0;
+	zl->buf[0] = ZIPLIST_END;
+	return zl;
 }
 
 void ZipList::destroy(ZipList* zl)

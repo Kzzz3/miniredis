@@ -2,7 +2,7 @@
 #include <iostream>
 #include <cassert>
 #include <chrono>
-#include "../DataStruct/zset.h"
+#include "../DataStruct/rbtree.h"
 
 // 创建辅助函数
 Sds* createSds(const std::string& str) {
@@ -10,7 +10,7 @@ Sds* createSds(const std::string& str) {
 }
 
 inline void testZSetFunctionality() {
-    ZSet zset;
+    RBTree zset;
 
     auto member1 = createSds("member1");
     auto member2 = createSds("member2");
@@ -27,7 +27,8 @@ inline void testZSetFunctionality() {
     assert(zset.rank(member1).value() == 1);
 
     // 测试删除成员
-    assert(zset.remove(member1) == true);
+    zset.remove(member1);
+    assert(zset.contains(member1) == true);
     assert(zset.rank(member1) == std::nullopt);
 
     // 测试根据排名查找
@@ -44,7 +45,7 @@ inline void testZSetFunctionality() {
 }
 
 inline void testZSetEdgeCases() {
-    ZSet zset;
+    RBTree zset;
 
     auto member1 = createSds("member1");
 
@@ -53,7 +54,8 @@ inline void testZSetEdgeCases() {
     assert(zset.getByRank(0) == std::nullopt);
 
     // 删除不存在的成员
-    assert(zset.remove(member1) == false);
+    zset.remove(member1);
+    assert(zset.contains(member1) == false);
 
     // 插入重复成员
     zset.add(10, member1);
@@ -67,7 +69,7 @@ inline void testZSetEdgeCases() {
 }
 
 inline void testZSetPerformance() {
-    ZSet zset;
+    RBTree zset;
 
     constexpr size_t NUM_ELEMENTS = 10000;
     std::vector<Sds*> members;

@@ -36,4 +36,9 @@ public:
 		write_buffer(std::make_unique<streambuf>(BUFFER_MAX_SIZE))
     {
     }
+
+    void AsyncSend(Sds* str)
+    {
+		socket.async_send(asio::const_buffer(str->buf, str->length()), [](const asio::error_code& error, size_t length) {});
+    }
 };

@@ -1,18 +1,21 @@
 #pragma once
 #include <limits>
+#include <cassert>
 #include <concepts>
+#include <optional>
 #include <stdexcept>
 #include <string_view>
 
-constexpr size_t SDS_MAX_PREALLOC = 1024 * 1024;
+#include "../utility.hpp"
 
-enum class SdsType 
-	: uint8_t {
-	SDS_TYPE_8 = 1,
-	SDS_TYPE_16 = 2,
-	SDS_TYPE_32 = 4,
-	SDS_TYPE_64 = 8,
-};
+using std::optional;
+
+constexpr uint8_t SDS_TYPE_8 = sizeof(uint8_t);
+constexpr uint8_t SDS_TYPE_16 = sizeof(uint16_t);
+constexpr uint8_t SDS_TYPE_32 = sizeof(uint32_t);
+constexpr uint8_t SDS_TYPE_64 = sizeof(uint64_t);
+
+constexpr size_t SDS_MAX_PREALLOC = 1024 * 1024;
 
 #pragma pack(push, 1)
 template <typename T>
@@ -21,7 +24,7 @@ template <typename T>
 struct SdsHdr {
 	T len;
 	T alloc;
-	SdsType type;
+	uint8_t flags;
 	char buf[1] = { '\0' };
 };
 #pragma pack(pop)
@@ -29,16 +32,18 @@ struct SdsHdr {
 #pragma pack(push, 1)
 class Sds {
 public:
-	SdsType type;
 	char buf[1] = { '\0' };
 
 public:
 	static void destroy(Sds* s);
-	static Sds* create(const char* str, size_t len, size_t alloc);
+
+	static Sds* create(Sds* str, size_t alloc = 0);
+	static Sds* create(const char* str, size_t len, size_t alloc = 0);
 
 	size_t length();
 	size_t capacity();
 	size_t available();
+	size_t headersize();
 
 	Sds* dilatation(size_t add_len);
 
@@ -49,6 +54,19 @@ public:
 	Sds* append(const char* str, size_t len);
 };
 #pragma pack(pop)
+
+template <typename T>
+constexpr optional<int64_t> sds2num(Sds* str)
+{
+	return str2num<T>(str->buf, str->length());
+}
+
+template <typename T>
+constexpr Sds* num2sds(T num)
+{
+	std::string str = std::to_string(num);
+	return Sds::create(str.c_str(), str.length(), str.length());
+}
 
 template <typename Func, typename Ret = std::invoke_result_t<Func, SdsHdr<uint64_t>*>>
 constexpr auto access_sdshdr(Sds* str, Func&& operation) -> Ret;

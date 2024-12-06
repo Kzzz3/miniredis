@@ -1,8 +1,8 @@
 #pragma once
-#include "DataStruct/dict.h"
+#include "DataStruct/hashtable.h"
 
 class RedisDb
 {
 public:
-	Dict kvstore;
+	HashTable<RedisObj*> kvstore;
 };

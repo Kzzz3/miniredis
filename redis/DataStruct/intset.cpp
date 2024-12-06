@@ -17,28 +17,22 @@ int64_t IntSet::get(uint32_t index)
 
 uint32_t IntSet::search(int64_t value)
 {
-	int64_t middle_value = 0;
-	int64_t middle = 0, left = 0, right = length;
-	while (left<right)
+	constexpr auto searchImpl = []<typename T>(byte * content, uint32_t length, int64_t value) -> uint32_t {
+		T* start = reinterpret_cast<T*>(content);
+		return std::lower_bound(start, start + length, static_cast<T>(value)) - start;
+	};
+
+	switch (encoding) 
 	{
-		middle = (left + right) / 2;
-
-		middle_value = get(middle);
-		if (middle_value == value)
-		{
-			return middle;
-		}
-		else if (middle_value < value)
-		{
-			left = middle + 1;
-		}
-		else
-		{
-			right = middle - 1;
-		}
+	case INTSET_ENC_INT16:
+		return searchImpl.operator() < int16_t > (content, length, value);
+	case INTSET_ENC_INT32:
+		return searchImpl.operator() < int32_t > (content, length, value);
+	case INTSET_ENC_INT64:
+		return searchImpl.operator() < int64_t > (content, length, value);
+	default:
+		assert(false);
 	}
-
-	return left;
 }
 
 IntSet* IntSet::create()
@@ -63,11 +57,11 @@ bool IntSet::contains(int64_t value)
 IntSet* IntSet::insert(int64_t value)
 {
 	uint32_t value_encoding = INTSET_ENC_INT16;
-	if (value > std::numeric_limits<int32_t>::max()||value<std::numeric_limits<int32_t>::min())
+	if (value > std::numeric_limits<int32_t>::max() || value < std::numeric_limits<int32_t>::min())
 	{
 		value_encoding = INTSET_ENC_INT64;
 	}
-	else if (value>std::numeric_limits<int16_t>::max() || value < std::numeric_limits<int16_t>::min())
+	else if (value > std::numeric_limits<int16_t>::max() || value < std::numeric_limits<int16_t>::min())
 	{
 		value_encoding = INTSET_ENC_INT32;
 	}
@@ -77,7 +71,6 @@ IntSet* IntSet::insert(int64_t value)
 	}
 
 	uint32_t index = search(value);
-
 	IntSet* new_is = resize(this, length + 1);
 	std::memmove(new_is->content + (index + 1) * encoding, new_is->content + index * encoding, (length - index) * encoding);
 
@@ -95,7 +88,6 @@ IntSet* IntSet::insert(int64_t value)
 	default:
 		assert(false);
 	}
-
 	return new_is;
 }
 
@@ -118,7 +110,8 @@ IntSet* resize(IntSet* is, size_t size)
 
 IntSet* upgrade(IntSet* is)
 {
-	if (is->encoding == INTSET_ENC_INT64) throw std::runtime_error("can't upgrade INT64 encoding");
+	if (is->encoding == INTSET_ENC_INT64)
+		assert(false);
 
 	uint32_t new_encoding = is->encoding * 2;
 	IntSet* new_is = reinterpret_cast<IntSet*>(std::realloc(is, sizeof(IntSet) + is->length * new_encoding));
@@ -126,7 +119,7 @@ IntSet* upgrade(IntSet* is)
 	switch (new_is->encoding)
 	{
 	case INTSET_ENC_INT16:
-		for (int64_t i = new_is->length-1; i >=0; --i)
+		for (int64_t i = new_is->length - 1; i >= 0; --i)
 		{
 			reinterpret_cast<int32_t*>(new_is->content)[i] = reinterpret_cast<int16_t*>(new_is->content)[i];
 		}
@@ -138,7 +131,7 @@ IntSet* upgrade(IntSet* is)
 		}
 		break;
 	default:
-		std::runtime_error("can't upgrade INT64 encoding");
+		assert(false);
 	}
 
 	new_is->encoding = new_encoding;

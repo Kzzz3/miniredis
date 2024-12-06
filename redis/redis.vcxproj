@@ -19,19 +19,25 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="command.cpp" />
+    <ClCompile Include="Command\command.cpp" />
+    <ClCompile Include="Command\hashcmd.cpp" />
+    <ClCompile Include="Command\listcmd.cpp" />
+    <ClCompile Include="Command\setcmd.cpp" />
+    <ClCompile Include="Command\stringcmd.cpp" />
+    <ClCompile Include="Command\zsetcmd.cpp" />
     <ClCompile Include="DataStruct\intset.cpp" />
     <ClCompile Include="DataStruct\sds.cpp" />
     <ClCompile Include="DataStruct\ziplist.cpp" />
+    <ClCompile Include="DataStruct\rbtree.cpp" />
     <ClCompile Include="miniredis.cpp" />
     <ClCompile Include="server.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="command.h" />
-    <ClInclude Include="DataStruct\dict.h" />
+    <ClInclude Include="Command\command.h" />
+    <ClInclude Include="DataStruct\hashtable.h" />
     <ClInclude Include="DataStruct\intset.h" />
     <ClInclude Include="DataStruct\linkedlist.h" />
-    <ClInclude Include="DataStruct\zset.h" />
+    <ClInclude Include="DataStruct\rbtree.h" />
     <ClInclude Include="DataStruct\sds.h" />
     <ClInclude Include="DataStruct\ziplist.h" />
     <ClInclude Include="DataType\hashobj.hpp" />

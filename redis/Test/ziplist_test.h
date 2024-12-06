@@ -69,7 +69,7 @@ inline void validate_ziplist_structure(ZipList* zl) {
 
 
 inline void testBasicOperations() {
-	ZipList* zl = new ZipList;
+	ZipList* zl = ZipList::create();
 
 	// Basic push operations
 	zl = zl->push_back(reinterpret_cast<uint8_t*>(const_cast<char*>("123")), 3);
@@ -102,7 +102,7 @@ inline void testBasicOperations() {
 }
 
 inline void testEdgeCases() {
-	ZipList* zl = new ZipList;
+	ZipList* zl = ZipList::create();
 
 	// Adding large strings and edge-case operations
 	std::string veryLongStr(0x4000, 'b');
@@ -128,7 +128,7 @@ inline void testEdgeCases() {
 }
 
 inline void testInsertAndChainUpdate() {
-	ZipList* zl = new ZipList;
+	ZipList* zl = ZipList::create();
 
 	zl = zl->push_back(reinterpret_cast<uint8_t*>(const_cast<char*>("short")), 5);
 	zl = zl->push_back(reinterpret_cast<uint8_t*>(const_cast<char*>("medium")), 6);
@@ -148,7 +148,7 @@ inline void testInsertAndChainUpdate() {
 }
 
 inline void testDeleteEdgeCases() {
-	ZipList* zl = new ZipList;
+	ZipList* zl = ZipList::create();
 
 	zl = zl->push_back(reinterpret_cast<uint8_t*>(const_cast<char*>("first")), 5);
 	zl = zl->push_back(reinterpret_cast<uint8_t*>(const_cast<char*>("second")), 6);
@@ -166,7 +166,7 @@ inline void testDeleteEdgeCases() {
 }
 
 inline void testMemoryManagement() {
-	ZipList* zl = new ZipList;
+	ZipList* zl = ZipList::create();
 
 	// Push and pop multiple times
 	for (int i = 0; i < 10000; ++i) {
@@ -187,7 +187,7 @@ inline void testMemoryManagement() {
 }
 
 inline void testPerformance() {
-	ZipList* zl = new ZipList;
+	ZipList* zl = ZipList::create();
 
 	auto start = std::chrono::high_resolution_clock::now();
 	// Insert 1 million elements for performance test

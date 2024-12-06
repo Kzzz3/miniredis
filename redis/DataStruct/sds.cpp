@@ -6,6 +6,11 @@ void Sds::destroy(Sds* s) {
 	});
 }
 
+Sds* Sds::create(Sds* str, size_t alloc)
+{
+	return create(str->buf, str->length(), alloc);
+}
+
 Sds* Sds::create(const char* str, size_t len, size_t alloc) {
 	alloc = std::max(alloc, len);
 
@@ -14,11 +19,11 @@ Sds* Sds::create(const char* str, size_t len, size_t alloc) {
 
 		hdr->len = len;
 		hdr->alloc = alloc;
-		hdr->type = static_cast<SdsType>(sizeof(T));
+		hdr->flags = sizeof(T);
 		std::memcpy(hdr->buf, str, len);
 		hdr->buf[len] = '\0';
 
-		return reinterpret_cast<Sds*>(&hdr->type);
+		return reinterpret_cast<Sds*>(&hdr->buf);
 	};
 
 	if (alloc < std::numeric_limits<uint8_t>::max()) {
@@ -51,6 +56,13 @@ size_t Sds::available() {
 	return capacity() - length();
 }
 
+size_t Sds::headersize()
+{
+	return access_sdshdr(this, [](auto psdshdr)->size_t {
+		return sizeof(std::remove_pointer_t<decltype(psdshdr)>) - 1;
+	});
+}
+
 Sds* Sds::dilatation(size_t add_len)
 {
 	size_t len = length();
@@ -71,10 +83,10 @@ Sds* Sds::dilatation(size_t add_len)
 
 			new_psdshdr->alloc = new_alloc;
 			new_psdshdr->len = len;
-			new_psdshdr->type = static_cast<SdsType>(sizeof(T));
+			new_psdshdr->flags = sizeof(T);
 			new_psdshdr->buf[len] = '\0';
 
-			return reinterpret_cast<Sds*>(&new_psdshdr->type);
+			return reinterpret_cast<Sds*>(&new_psdshdr->buf);
 		});
 	};
 
@@ -99,7 +111,7 @@ Sds* Sds::copy(Sds* str)
 
 Sds* Sds::copy(const char* str, size_t len)
 {
-	Sds* ret = len <= available() ? this : dilatation(len - available());
+	Sds* ret = len <= capacity() ? this : dilatation(len - capacity());
 
 	std::memcpy(ret->buf, str, len);
 	access_sdshdr(ret, [len](auto psdshdr) {
@@ -126,18 +138,21 @@ Sds* Sds::append(const char* str, size_t len)
 	return ret;
 }
 
+
+
 template <typename Func, typename Ret>
 constexpr auto access_sdshdr(Sds* str, Func&& operation)-> Ret {
-	switch (str->type) {
-	case SdsType::SDS_TYPE_8:
+	uint8_t flags = reinterpret_cast<uint8_t*>(str)[-1];
+	switch (flags) {
+	case SDS_TYPE_8:
 		return operation(reinterpret_cast<SdsHdr<uint8_t>*>(str->buf - sizeof(SdsHdr<uint8_t>) + 1));
-	case SdsType::SDS_TYPE_16:
+	case SDS_TYPE_16:
 		return operation(reinterpret_cast<SdsHdr<uint16_t>*>(str->buf - sizeof(SdsHdr<uint16_t>) + 1));
-	case SdsType::SDS_TYPE_32:
+	case SDS_TYPE_32:
 		return operation(reinterpret_cast<SdsHdr<uint32_t>*>(str->buf - sizeof(SdsHdr<uint32_t>) + 1));
-	case SdsType::SDS_TYPE_64:
+	case SDS_TYPE_64:
 		return operation(reinterpret_cast<SdsHdr<uint64_t>*>(str->buf - sizeof(SdsHdr<uint64_t>) + 1));
 	default:
-		throw std::runtime_error("Invalid SDS type.");
+		assert(false);
 	}
 }

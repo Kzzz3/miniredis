@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstddef>
+#include <optional>
 #include <stdexcept>
 
 using std::byte;

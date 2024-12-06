@@ -24,7 +24,7 @@ enum class ObjEncoding
 	REDIS_ENCODING_LINKEDLIST,
 	REDIS_ENCODING_ZIPLIST,
 	REDIS_ENCODING_INTSET,
-	REDIS_ENCODING_SKIPLIST,
+	REDIS_ENCODING_RBTREE,
 };
 
 #pragma pack(push, 1)
@@ -44,3 +44,23 @@ public:
 };
 #pragma pack(pop)
 
+class ValueRef
+{
+public:
+	Sds* val;
+	RedisObj* obj;
+
+	ValueRef(Sds* val, RedisObj* obj) 
+		: val(val), obj(obj)
+	{
+		if (obj != nullptr)
+			obj->refcount++;
+	}
+
+	~ValueRef()
+	{
+		if (obj != nullptr)
+			obj->refcount--;
+		else Sds::destroy(val);
+	}
+};

@@ -32,9 +32,9 @@ struct ZlEntry
 class ZipList
 {
 public:
-	uint32_t total_bytes = 0;
-	uint32_t last_offset = 0;
-	uint16_t items_num = 0;
+	uint32_t total_bytes;
+	uint32_t last_offset;
+	uint16_t items_num;
 	uint8_t buf[1] = { ZIPLIST_END };
 
 public:
