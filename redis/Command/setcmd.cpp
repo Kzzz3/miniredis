@@ -10,11 +10,11 @@ void CmdSAdd(shared_ptr<Connection> conn, Command& cmd)
 	RedisDb* db = server.selectDb(cmd[1]);
 	if (!db->kvstore.contains(cmd[1]))
 	{
-		db->kvstore[cmd[1]] = CreateSetObject();
+		db->kvstore[Sds::create(cmd[1])] = SetObjectCreate();
 	}
 
 	for (size_t i = 2; i < size; i++)
-		SetObjAdd(db->kvstore[cmd[1]], cmd[i]);
+		SetObjectAdd(db->kvstore[cmd[1]], cmd[i]);
 }
 
 void CmdSRem(shared_ptr<Connection> conn, Command& cmd)
@@ -27,12 +27,12 @@ void CmdSRem(shared_ptr<Connection> conn, Command& cmd)
 	if (db->kvstore.contains(cmd[1]))
 	{
 		for (size_t i = 2; i < size; i++)
-			SetObjRemove(db->kvstore[cmd[1]], cmd[i]);
+			SetObjectRemove(db->kvstore[cmd[1]], cmd[i]);
 	}
 	else
 	{
 		auto reply = GenerateErrorReply("nil");
-		server.response_queue.push_back({ std::move(reply), conn });
+		conn->AsyncSend(std::move(reply));
 	}
 }
 
@@ -44,13 +44,13 @@ void CmdSMembers(shared_ptr<Connection> conn, Command& cmd)
 	RedisDb* db = server.selectDb(cmd[1]);
 	if (db->kvstore.contains(cmd[1]))
 	{
-		auto reply = GenerateReply(SetObjMembers(db->kvstore[cmd[1]]));
-		server.response_queue.push_back({ std::move(reply), conn });
+		auto reply = GenerateReply(SetObjectMembers(db->kvstore[cmd[1]]));
+		conn->AsyncSend(std::move(reply));
 	}
 	else
 	{
 		auto reply = GenerateErrorReply("nil");
-		server.response_queue.push_back({ std::move(reply), conn });
+		conn->AsyncSend(std::move(reply));
 	}
 }
 
@@ -62,14 +62,14 @@ void CmdSisMember(shared_ptr<Connection> conn, Command& cmd)
 	RedisDb* db = server.selectDb(cmd[1]);
 	if (db->kvstore.contains(cmd[1]))
 	{
-		auto reply = SetObjIsMember(db->kvstore[cmd[1]], cmd[2]) ?
+		auto reply = SetObjectIsMember(db->kvstore[cmd[1]], cmd[2]) ?
 			GenerateReply(make_unique<ValueRef>(Sds::create("true", 4), nullptr)) : 
 			GenerateReply(make_unique<ValueRef>(Sds::create("false", 5), nullptr));
-		server.response_queue.push_back({ std::move(reply), conn });
+		conn->AsyncSend(std::move(reply));
 	}
 	else
 	{
 		auto reply = GenerateErrorReply("nil");
-		server.response_queue.push_back({ std::move(reply), conn });
+		conn->AsyncSend(std::move(reply));
 	}
 }

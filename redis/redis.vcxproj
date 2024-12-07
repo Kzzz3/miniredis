@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Command\command.cpp" />
+    <ClCompile Include="Command\generalcmd.cpp" />
     <ClCompile Include="Command\hashcmd.cpp" />
     <ClCompile Include="Command\listcmd.cpp" />
     <ClCompile Include="Command\setcmd.cpp" />
@@ -161,6 +162,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

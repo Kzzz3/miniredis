@@ -10,13 +10,13 @@ void CmdZAdd(shared_ptr<Connection> conn, Command& cmd)
 	RedisDb* db = server.selectDb(cmd[1]);
 	if (!db->kvstore.contains(cmd[1]))
 	{
-		db->kvstore[cmd[1]] = CreateZsetObject();
+		db->kvstore[Sds::create(cmd[1])] = ZsetObjectCreate();
 	}
 
 	RedisObj* zsetobj = db->kvstore[cmd[1]];
 	for (size_t i = 2; i < size; i += 2)
 	{
-		ZsetObjAdd(zsetobj, sds2num<double>(cmd[i]).value(), cmd[i + 1]);
+		ZsetObjectAdd(zsetobj, sds2num<double>(cmd[i]).value(), cmd[i + 1]);
 	}
 }
 
@@ -31,12 +31,12 @@ void CmdZRem(shared_ptr<Connection> conn, Command& cmd)
 	{
 		RedisObj* zsetobj = db->kvstore[cmd[1]];
 		for (size_t i = 2; i < size; i++)
-			ZsetObjRemove(zsetobj, cmd[i]);
+			ZsetObjectRemove(zsetobj, cmd[i]);
 	}
 	else
 	{
 		auto reply = GenerateErrorReply("nil");
-		server.response_queue.push_back({ std::move(reply), conn });
+		conn->AsyncSend(std::move(reply));
 	}
 }
 
@@ -49,13 +49,13 @@ void CmdZRange(shared_ptr<Connection> conn, Command& cmd)
 	RedisDb* db = server.selectDb(cmd[1]);
 	if (db->kvstore.contains(cmd[1]))
 	{
-		auto reply = GenerateReply(ZsetObjRange(db->kvstore[cmd[1]], sds2num<double>(cmd[2]).value(), sds2num<double>(cmd[3]).value()));
-		server.response_queue.push_back({ std::move(reply), conn });
+		auto reply = GenerateReply(ZsetObjectRange(db->kvstore[cmd[1]], sds2num<double>(cmd[2]).value(), sds2num<double>(cmd[3]).value()));
+		conn->AsyncSend(std::move(reply));
 	}
 	else
 	{
 		auto reply = GenerateErrorReply("nil");
-		server.response_queue.push_back({ std::move(reply), conn });
+		conn->AsyncSend(std::move(reply));
 	}
 }
 
@@ -68,12 +68,12 @@ void CmdZRevRange(shared_ptr<Connection> conn, Command& cmd)
 	RedisDb* db = server.selectDb(cmd[1]);
 	if (db->kvstore.contains(cmd[1]))
 	{
-		auto reply = GenerateReply(ZsetObjRevRange(db->kvstore[cmd[1]], sds2num<double>(cmd[2]).value(), sds2num<double>(cmd[3]).value()));
-		server.response_queue.push_back({ std::move(reply), conn });
+		auto reply = GenerateReply(ZsetObjectRevRange(db->kvstore[cmd[1]], sds2num<double>(cmd[2]).value(), sds2num<double>(cmd[3]).value()));
+		conn->AsyncSend(std::move(reply));
 	}
 	else
 	{
 		auto reply = GenerateErrorReply("nil");
-		server.response_queue.push_back({ std::move(reply), conn });
+		conn->AsyncSend(std::move(reply));
 	}
 }

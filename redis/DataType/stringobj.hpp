@@ -6,7 +6,7 @@
 
 using std::make_unique;
 
-inline RedisObj* CreateStringObject(Sds* str)
+inline RedisObj* StringObjectCreate(Sds* str)
 {
 	RedisObj* obj = nullptr;
 	size_t len = str->length();
@@ -46,7 +46,7 @@ inline RedisObj* CreateStringObject(Sds* str)
 	return obj;
 }
 
-inline RedisObj* UpdateStringObject(RedisObj* obj, Sds* str)
+inline RedisObj* StringObjectUpdate(RedisObj* obj, Sds* str)
 {
 	// Case 1: Encoding is INT, try to keep it as INT if possible
 	if (obj->encoding == ObjEncoding::REDIS_ENCODING_INT)
@@ -95,7 +95,7 @@ inline RedisObj* UpdateStringObject(RedisObj* obj, Sds* str)
 	return obj;
 }
 
-inline auto StringObjGet(RedisObj* obj)
+inline auto StringObjectGet(RedisObj* obj)
 {
 	Sds* value = nullptr;
 	std::vector<Sds*> result;
@@ -104,4 +104,11 @@ inline auto StringObjGet(RedisObj* obj)
 		return make_unique<ValueRef>(num2sds(obj->data.num), nullptr);
 	}
 	return make_unique<ValueRef>(reinterpret_cast<Sds*>(obj->data.ptr), obj);
+}
+
+inline void StringObjectDestroy(RedisObj* obj)
+{
+	if (obj->encoding == ObjEncoding::REDIS_ENCODING_RAW)
+		Sds::destroy(reinterpret_cast<Sds*>(obj->data.ptr));
+	std::free(obj);
 }

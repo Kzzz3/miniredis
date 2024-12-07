@@ -20,16 +20,17 @@ struct Compare {
 
 class RBTree {
 public:
-    
+
 	bool contains(Sds* member);
     void remove(Sds* member);
     void add(double score, Sds* member);
+    std::multiset<std::pair<double, Sds*>, Compare>::const_iterator find(Sds* member);
 
     std::optional<size_t> rank(Sds* member);
-    std::optional<std::pair<double, Sds*>> getByRank(size_t rank);
+    std::optional<std::pair<double, Sds*>> getByRank(int rank);
     std::vector<std::pair<double, Sds*>> rangeByScore(double minScore, double maxScore);
 
-private:
+public:
     std::unordered_map<Sds*, double> scoremap;
     std::multiset<std::pair<double, Sds*>, Compare> rbt;
 };

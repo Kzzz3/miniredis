@@ -7,7 +7,7 @@ using std::vector;
 using std::unique_ptr;
 using std::make_unique;
 
-inline RedisObj* CreateSetObject()
+inline RedisObj* SetObjectCreate()
 {
 	RedisObj* obj = reinterpret_cast<RedisObj*>(malloc(sizeof(RedisObj)));
 	obj->type = ObjType::REDIS_SET;
@@ -19,23 +19,38 @@ inline RedisObj* CreateSetObject()
 	return obj;
 }
 
-inline void SetObjAdd(RedisObj* obj, Sds* member)
+inline void SetObjectAdd(RedisObj* obj, Sds* member)
 {
 	HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
 	ht[Sds::create(member)] = nullptr;
 }
 
-inline void SetObjRemove(RedisObj* obj, Sds* member)
+inline void SetObjectRemove(RedisObj* obj, Sds* member)
 {
 	HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
 	if (ht.contains(member))
 	{
+		auto entry = ht.find(member);
+		Sds* entrykey = entry->first;
+
 		ht.erase(member);
-		Sds::destroy(member);
+
+		Sds::destroy(entrykey);
 	}
 }
 
-inline auto SetObjMembers(RedisObj* obj)
+inline void SetObjectDestroy(RedisObj* obj)
+{
+	HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
+	for (auto& [key, _] : ht)
+	{
+		Sds::destroy(key);
+	}
+	std::free(obj->data.ptr);
+	std::free(obj);
+}
+
+inline auto SetObjectMembers(RedisObj* obj)
 {
 	HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
 	vector<unique_ptr<ValueRef>> result;
@@ -46,7 +61,7 @@ inline auto SetObjMembers(RedisObj* obj)
 	return result;
 }
 
-inline bool SetObjIsMember(RedisObj* obj, Sds* member)
+inline bool SetObjectIsMember(RedisObj* obj, Sds* member)
 {
 	HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
 	return ht.contains(member);

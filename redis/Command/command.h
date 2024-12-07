@@ -26,7 +26,6 @@ std::function<void(shared_ptr<Connection> conn, Command&)> GetCommandHandler(Sds
 // string command
 void CmdSet(shared_ptr<Connection> conn, Command& cmd);
 void CmdGet(shared_ptr<Connection> conn, Command& cmd);
-void CmdDel(shared_ptr<Connection> conn, Command& cmd);
 void CmdIncr(shared_ptr<Connection> conn, Command& cmd);
 void CmdDecr(shared_ptr<Connection> conn, Command& cmd);
 void CmdAppend(shared_ptr<Connection> conn, Command& cmd);
@@ -58,6 +57,7 @@ void CmdZRange(shared_ptr<Connection> conn, Command& cmd);
 void CmdZRevRange(shared_ptr<Connection> conn, Command& cmd);
 
 // free command
+void CmdDel(shared_ptr<Connection> conn, Command& cmd);
 void CmdTTL(shared_ptr<Connection> conn, Command& cmd);
 void CmdExpire(shared_ptr<Connection> conn, Command& cmd);
 void FlushDB(shared_ptr<Connection> conn, Command& cmd);

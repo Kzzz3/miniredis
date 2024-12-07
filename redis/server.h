@@ -27,15 +27,6 @@ class Server;
 extern Server server;
 extern uint32_t DATABASE_NUM;
 
-class Response
-{
-public:
-	unique_ptr<Sds, decltype(&Sds::destroy)> reply;
-	std::weak_ptr<Connection> conn;
-
-	Response(unique_ptr<Sds, decltype(&Sds::destroy)>&& reply, std::weak_ptr<Connection> conn) : reply(std::move(reply)), conn(conn) {}
-};
-
 class Server
 {
 public:
@@ -46,12 +37,7 @@ public:
 	//reade and parse command
 
 	//execute thread
-	std::list<Command> execute_queue;
-	std::thread execute_thread;
-
-	//write thread
-	std::list<Response> response_queue;
-	std::thread write_thread;
+	asio::static_thread_pool exec_threadpool;
 
 	//to do: use asio::strand to write response to client instead of using a single thread
 

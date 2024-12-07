@@ -37,8 +37,13 @@ public:
     {
     }
 
-    void AsyncSend(Sds* str)
+    void AsyncSend(unique_ptr<Sds,decltype(&Sds::destroy)> &str)
     {
 		socket.async_send(asio::const_buffer(str->buf, str->length()), [](const asio::error_code& error, size_t length) {});
+    }
+
+    void AsyncSend(unique_ptr<Sds, decltype(&Sds::destroy)> &&str)
+    {
+        socket.async_send(asio::const_buffer(str->buf, str->length()), [](const asio::error_code& error, size_t length) {});
     }
 };

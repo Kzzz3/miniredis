@@ -51,6 +51,9 @@
     <ClCompile Include="Command\zsetcmd.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Command\generalcmd.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Command\command.h">

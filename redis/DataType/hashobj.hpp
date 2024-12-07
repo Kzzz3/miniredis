@@ -11,7 +11,7 @@ using std::vector;
 using std::unique_ptr;
 using std::make_unique;
 
-inline RedisObj* CreateHashObject()
+inline RedisObj* HashObjectCreate()
 {
 	RedisObj* obj = reinterpret_cast<RedisObj*>(malloc(sizeof(RedisObj)));
 	obj->type = ObjType::REDIS_HASH;
@@ -23,29 +23,47 @@ inline RedisObj* CreateHashObject()
 	return obj;
 }
 
-inline void HashObjInsert(RedisObj* obj, Sds* key, Sds* value)
+inline void HashObjectInsert(RedisObj* obj, Sds* field, Sds* value)
 {
 	HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
-	ht[key] = Sds::create(value);
+	ht[Sds::create(field)] = Sds::create(value);
 }
 
-inline auto HashObjGet(RedisObj* obj, Sds* key)
+inline auto HashObjectGet(RedisObj* obj, Sds* key)
 {
 	HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
 	return ht.contains(key) ? make_unique<ValueRef>(ht[key], obj) : nullptr;
 }
 
-inline void HashObjRemove(RedisObj* obj, Sds* key)
+inline void HashObjectDestroy(RedisObj* obj)
 {
 	HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
-	if (ht.contains(key))
+	for (auto& [key, value] : ht)
 	{
-		Sds::destroy(ht[key]);
-		ht.erase(key);
+		Sds::destroy(key);
+		Sds::destroy(value);
+	}
+	std::free(obj->data.ptr);
+	std::free(obj);
+}
+
+inline void HashObjectRemove(RedisObj* obj, Sds* filed)
+{
+	HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
+	if (ht.contains(filed))
+	{
+		auto entry = ht.find(filed);
+		Sds* entrykey = entry->first;
+		Sds* entryvalue = entry->second;
+		
+		ht.erase(filed);
+
+		Sds::destroy(entrykey);
+		Sds::destroy(entryvalue);
 	}
 }
 
-inline auto HashObjKeys(RedisObj* obj)
+inline auto HashObjectKeys(RedisObj* obj)
 {
 	HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
 	vector<unique_ptr<ValueRef>> result;
@@ -56,7 +74,7 @@ inline auto HashObjKeys(RedisObj* obj)
 	return result;
 }
 
-inline auto HashObjKVs(RedisObj* obj)
+inline auto HashObjectKVs(RedisObj* obj)
 {
 	HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
 	vector<unique_ptr<ValueRef>> result;

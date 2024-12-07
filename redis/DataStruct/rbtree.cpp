@@ -14,6 +14,11 @@ void RBTree::remove(Sds* member)
 	scoremap.erase(member);
 }
 
+std::multiset<std::pair<double, Sds*>, Compare>::iterator RBTree::find(Sds* member)
+{
+	return rbt.find({ scoremap[member], member });
+}
+
 void RBTree::add(double score, Sds* member)
 {
 
@@ -33,11 +38,13 @@ std::optional<size_t> RBTree::rank(Sds* member)
 	return std::distance(rbt.begin(), it);
 }
 
-std::optional<std::pair<double, Sds*>> RBTree::getByRank(size_t rank)
+std::optional<std::pair<double, Sds*>> RBTree::getByRank(int rank)
 {
-	if (rank >= rbt.size())
+	if (rbt.size() == 0)
 		return std::nullopt;
 
+	int size = rbt.size();
+	rank = (rank % size + size) % size;
 	auto it = std::next(rbt.begin(), rank);
 	return *it;
 }

@@ -5,7 +5,7 @@
 #include "redisobj.h"
 #include "../DataStruct/linkedlist.h"
 
-inline RedisObj* CreateListObject()
+inline RedisObj* ListObjectCreate()
 {
 	RedisObj* obj = reinterpret_cast<RedisObj*>(malloc(sizeof(RedisObj)));
 	obj->type = ObjType::REDIS_LIST;
@@ -17,19 +17,19 @@ inline RedisObj* CreateListObject()
 	return obj;
 }
 
-inline void ListObjLPush(RedisObj* obj, Sds* value)
+inline void ListObjectLPush(RedisObj* obj, Sds* value)
 {
 	LinkedList& list = *reinterpret_cast<LinkedList*>(obj->data.ptr);
 	list.push_front(Sds::create(value));
 }
 
-inline void ListObjRPush(RedisObj* obj, Sds* value)
+inline void ListObjectRPush(RedisObj* obj, Sds* value)
 {
 	LinkedList& list = *reinterpret_cast<LinkedList*>(obj->data.ptr);
 	list.push_back(Sds::create(value));
 }
 
-inline unique_ptr<ValueRef> ListObjLPop(RedisObj* obj)
+inline unique_ptr<ValueRef> ListObjectLPop(RedisObj* obj)
 {
 	LinkedList& list = *reinterpret_cast<LinkedList*>(obj->data.ptr);
 	if (list.size() > 0)
@@ -41,7 +41,7 @@ inline unique_ptr<ValueRef> ListObjLPop(RedisObj* obj)
 	return nullptr;
 }
 
-inline unique_ptr<ValueRef> ListObjRPop(RedisObj* obj)
+inline unique_ptr<ValueRef> ListObjectRPop(RedisObj* obj)
 {
 	LinkedList& list = *reinterpret_cast<LinkedList*>(obj->data.ptr);
 	if (list.size() > 0)
@@ -53,7 +53,7 @@ inline unique_ptr<ValueRef> ListObjRPop(RedisObj* obj)
 	return nullptr;
 }
 
-inline vector<unique_ptr<ValueRef>> ListObjRange(RedisObj* obj, int start, int end)
+inline vector<unique_ptr<ValueRef>> ListObjectRange(RedisObj* obj, int start, int end)
 {
 	LinkedList& list = *reinterpret_cast<LinkedList*>(obj->data.ptr);
 	vector<unique_ptr<ValueRef>> result;
@@ -71,4 +71,15 @@ inline vector<unique_ptr<ValueRef>> ListObjRange(RedisObj* obj, int start, int e
 		result.emplace_back(make_unique<ValueRef>(reinterpret_cast<Sds*>(*it), obj));
 
 	return result;
+}
+
+inline void ListObjectDestroy(RedisObj* obj)
+{
+	LinkedList& list = *reinterpret_cast<LinkedList*>(obj->data.ptr);
+	for (auto& value : list)
+	{
+		Sds::destroy(reinterpret_cast<Sds*>(value));
+	}
+	std::free(obj->data.ptr);
+	std::free(obj);
 }

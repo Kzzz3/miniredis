@@ -5,21 +5,9 @@ uint32_t DATABASE_NUM = 16;
 
 Server::Server() :
 	connection_id(0),
-	databases(DATABASE_NUM)
+	databases(DATABASE_NUM),
+	exec_threadpool(1)
 {
-	write_thread = std::thread([this]() {
-		for (;;) {
-			Sleep(1);
-			if (!response_queue.empty()) {
-				Response resp = std::move(response_queue.front());
-				response_queue.pop_front();
-				auto conn = resp.conn.lock();
-				if (conn) {
-					conn->AsyncSend(resp.reply.get());
-				}
-			}
-		}
-	});
 }
 
 void Server::start()
@@ -57,7 +45,11 @@ awaitable<void> Server::handleConnection(shared_ptr<Connection> conn) {
 
 		//execute command
 		if (handler) {
-			handler(conn ,cmd);
+			asio::post(exec_threadpool, [conn, handler, cmd]() mutable {
+				handler(conn, cmd);
+				for (auto& sds : cmd)
+					Sds::destroy(sds);
+			});
 		}
 		else {
 			//err
@@ -87,13 +79,14 @@ awaitable<Command> Server::readCommandFromClient(shared_ptr<Connection> conn)
 	Command cmd;
 	cmd.reserve(bulkSize);
 
-	size_t bulkLen = 0;
+	int64_t bulkLen = 0;
 	for (size_t i = 0; i < bulkSize; i++) {
 		n = co_await async_read_until(conn->socket, *conn->read_buffer, "\r\n", use_awaitable);
 		if (n == 0) {
 			// close command
 		}
 
+		optional<int64_t> num;
 		data = asio::buffer_cast<const char*>(conn->read_buffer->data());
 		switch (data[0])
 		{
@@ -106,12 +99,13 @@ awaitable<Command> Server::readCommandFromClient(shared_ptr<Connection> conn)
 			conn->read_buffer->consume(n);
 			break;
 		case '$':
-			bulkLen = std::stoi(std::string(data + 1, n - 3), nullptr, 10);
-			if (bulkLen <= 0) {
+			num = str2num<int64_t>(data + 1, n - 3);
+			if (!num.has_value() || num.value() <= 0) {
 				//err
 			}
-			conn->read_buffer->consume(n);
 
+			bulkLen = num.value();
+			conn->read_buffer->consume(n);
 			if (conn->read_buffer->in_avail() < bulkLen + 2) {
 				n = co_await async_read(conn->socket, *conn->read_buffer, asio::transfer_exactly(bulkLen + 2 - conn->read_buffer->in_avail()), use_awaitable);
 				if (n == 0) {
