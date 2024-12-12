@@ -1,8 +1,8 @@
 #pragma once
 
 #include "redisobj.h"
-#include "utility.hpp"
 #include "DataStruct/sds.h"
+#include "Utility/utility.hpp"
 
 using std::make_unique;
 

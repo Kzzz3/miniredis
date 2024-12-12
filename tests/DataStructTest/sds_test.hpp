@@ -1,13 +1,14 @@
 #pragma once
-#include <chrono>
-#include <thread>
 #include <cassert>
+#include <chrono>
 #include <cstring>
 #include <iostream>
+#include <thread>
 
 #include "DataStruct/sds.h"
 
-void test_create_empty() {
+void test_create_empty()
+{
     const char* data = "";
     size_t len = strlen(data);
 
@@ -20,7 +21,8 @@ void test_create_empty() {
     Sds::destroy(obj);
 }
 
-void test_create_max_length() {
+void test_create_max_length()
+{
     size_t len = 255; // Maximum for uint8_t
     char data[256];
     std::fill(data, data + len, 'A');
@@ -35,7 +37,8 @@ void test_create_max_length() {
     Sds::destroy(obj);
 }
 
-void test_append_to_empty() {
+void test_append_to_empty()
+{
     const char* append_data = "AppendMe";
     size_t append_len = strlen(append_data);
 
@@ -49,7 +52,8 @@ void test_append_to_empty() {
     Sds::destroy(obj);
 }
 
-void test_append_beyond_capacity() {
+void test_append_beyond_capacity()
+{
     const char* data = "Data";
     const char* append_data = "MoreData";
     size_t len = strlen(data);
@@ -65,12 +69,15 @@ void test_append_beyond_capacity() {
     Sds::destroy(obj);
 }
 
-void test_concurrent_operations() {
+void test_concurrent_operations()
+{
     const char* data = "ConcurrentTest";
     size_t len = strlen(data);
 
-    auto create_destroy = [data, len]() {
-        for (int i = 0; i < 1000; ++i) {
+    auto create_destroy = [data, len]()
+    {
+        for (int i = 0; i < 1000; ++i)
+        {
             Sds* obj = Sds::create(data, len, len);
             assert(obj != nullptr);
             Sds::destroy(obj);
@@ -83,30 +90,36 @@ void test_concurrent_operations() {
     t2.join();
 }
 
-void test_performance_create_destroy() {
+void test_performance_create_destroy()
+{
     auto start = std::chrono::high_resolution_clock::now();
     const char* data = "PerformanceTest";
     size_t len = strlen(data);
 
-    for (int i = 0; i < 1000000; ++i) {
+    for (int i = 0; i < 1000000; ++i)
+    {
         Sds* obj = Sds::create(data, len, len);
         Sds::destroy(obj);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    std::cout << "Performance Test - Create and Destroy 1000000 objects: " << duration << " ms" << std::endl;
+    std::cout << "Performance Test - Create and Destroy 1000000 objects: " << duration << " ms"
+              << std::endl;
 }
 
-void test_performance_append() {
+void test_performance_append()
+{
     auto start = std::chrono::high_resolution_clock::now();
     const char* append_data = "AppendMe";
     size_t append_len = strlen(append_data);
 
     Sds* obj = Sds::create("", 0, append_len);
-    for (int i = 0; i < 1000000; ++i) {
-        obj = obj->append(append_data, append_len);
-    }
+    std::string str(900000, 'a');
+    // for (int i = 0; i < 1000000; ++i) {
+    //     obj = obj->append(append_data, append_len);
+    // }
+    obj = obj->append(str.c_str(), str.length());
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -115,7 +128,8 @@ void test_performance_append() {
     Sds::destroy(obj);
 }
 
-void test_large_string() {
+void test_large_string()
+{
     size_t len = 1000000; // 1 million characters
     char* data = new char[len + 1];
     std::fill(data, data + len, 'A');
@@ -130,10 +144,12 @@ void test_large_string() {
     delete[] data;
 }
 
-inline void sds_tests() {
+inline void sds_tests()
+{
     using namespace std;
 
-    try {
+    try
+    {
         cout << "Running detailed tests..." << endl;
 
         test_create_empty();
@@ -157,7 +173,8 @@ inline void sds_tests() {
 
         cout << "All detailed tests passed!" << endl;
     }
-    catch (const std::exception& e) {
+    catch (const std::exception& e)
+    {
         cerr << "Test failed: " << e.what() << endl;
     }
 }

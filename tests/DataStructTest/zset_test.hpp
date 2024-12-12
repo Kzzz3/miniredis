@@ -1,20 +1,16 @@
 #pragma once
-#include <iostream>
+#include "DataStruct/rbtree.h"
 #include <cassert>
 #include <chrono>
-#include "DataStruct/rbtree.h"
+#include <iostream>
 
-// Create a new Sds object
-Sds* createSds(const std::string& str) {
-    return Sds::create(str.c_str(), str.size(), str.size());
-}
-
-inline void testZSetFunctionality() {
+inline void testZSetFunctionality()
+{
     RBTree zset;
 
-    auto member1 = createSds("member1");
-    auto member2 = createSds("member2");
-    auto member3 = createSds("member3");
+    auto member1 = Sds::create("member1", 7);
+    auto member2 = Sds::create("member2", 7);
+    auto member3 = Sds::create("member3", 7);
 
     // Test adding members
     zset.add(10, member1);
@@ -41,12 +37,25 @@ inline void testZSetFunctionality() {
     zset.add(25, member3);
     auto range = zset.rangeByScore(15, 30);
     assert(range.size() == 2); // member2, member3
+
+    if (zset.rbt.size() != 0)
+    {
+        auto first = zset.getByRank(0);
+        auto last = zset.getByRank(-1);
+
+        auto entrys = zset.rangeByScore(first->first, last->first);
+        for (auto& [score, member] : entrys)
+        {
+            Sds::destroy(member);
+        }
+    }
 }
 
-inline void testZSetEdgeCases() {
+inline void testZSetEdgeCases()
+{
     RBTree zset;
 
-    auto member1 = createSds("member1");
+    auto member1 = Sds::create("member1", 7);
 
     // Test operations on empty set
     assert(zset.rank(member1) == std::nullopt);
@@ -64,51 +73,82 @@ inline void testZSetEdgeCases() {
     // Test boundary conditions for range queries
     auto range = zset.rangeByScore(5, 10);
     assert(range.size() == 1); // Only member1
+
+    if (zset.rbt.size() != 0)
+    {
+        auto first = zset.getByRank(0);
+        auto last = zset.getByRank(-1);
+
+        auto entrys = zset.rangeByScore(first->first, last->first);
+        for (auto& [score, member] : entrys)
+        {
+            Sds::destroy(member);
+        }
+    }
 }
 
-inline void testZSetPerformance() {
+inline void testZSetPerformance()
+{
     RBTree zset;
 
     constexpr size_t NUM_ELEMENTS = 10000;
     std::vector<Sds*> members;
 
     // Insert elements into the set
-    for (size_t i = 0; i < NUM_ELEMENTS; ++i) {
-        auto member = createSds("member" + std::to_string(i));
+    for (size_t i = 0; i < NUM_ELEMENTS; ++i)
+    {
+        std::string temp = "member" + std::to_string(i);
+        auto member = Sds::create(temp.c_str(), temp.length());
         members.push_back(member);
         zset.add(i, member);
     }
 
     // Test rank performance
     auto start = std::chrono::high_resolution_clock::now();
-    for (size_t i = 0; i < NUM_ELEMENTS; ++i) {
+    for (size_t i = 0; i < NUM_ELEMENTS; ++i)
+    {
         assert(zset.rank(members[i]).value() == i);
     }
     auto end = std::chrono::high_resolution_clock::now();
     std::cout << "Rank test completed in "
-        << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
-        << " ms\n";
+              << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+              << " ms\n";
 
     // Test range query performance
     start = std::chrono::high_resolution_clock::now();
     auto range = zset.rangeByScore(100, 200);
     end = std::chrono::high_resolution_clock::now();
     std::cout << "RangeByScore test completed in "
-        << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
-        << " ms, found " << range.size() << " elements\n";
+              << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+              << " ms, found " << range.size() << " elements\n";
 
     // Test deletion performance
     start = std::chrono::high_resolution_clock::now();
-    for (auto member : members) {
+    for (auto member : members)
+    {
         zset.remove(member);
+        Sds::destroy(member);
     }
     end = std::chrono::high_resolution_clock::now();
     std::cout << "Delete test completed in "
-        << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
-        << " ms\n";
+              << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
+              << " ms\n";
+
+    if (zset.rbt.size() != 0)
+    {
+        auto first = zset.getByRank(0);
+        auto last = zset.getByRank(-1);
+
+        auto entrys = zset.rangeByScore(first->first, last->first);
+        for (auto& [score, member] : entrys)
+        {
+            Sds::destroy(member);
+        }
+    }
 }
 
-inline void zset_test() {
+inline void zset_test()
+{
     std::cout << "Testing ZSet functionality...\n";
     testZSetFunctionality();
     std::cout << "Functionality test passed!\n";

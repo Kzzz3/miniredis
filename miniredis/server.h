@@ -7,8 +7,8 @@
 #include <exception>
 
 #include "db.h"
-#include "utility.hpp"
 #include "Command/command.h"
+#include "Utility/utility.hpp"
 #include "DataType/redisobj.h"
 #include "Networking/connection.h"
 

@@ -3,8 +3,8 @@
 #include <memory>
 
 #include "redisobj.h"
-#include "../utility.hpp"
-#include "../DataStruct/hashtable.h"
+#include "Utility/utility.hpp"
+#include "DataStruct/hashtable.h"
 
 using std::malloc;
 using std::vector;

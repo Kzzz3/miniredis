@@ -2,8 +2,8 @@
 #include <ranges>
 
 #include "redisobj.h"
-#include "../utility.hpp"
-#include "../DataStruct/rbtree.h"
+#include "Utility/utility.hpp"
+#include "DataStruct/rbtree.h"
 
 inline RedisObj* ZsetObjectCreate()
 {

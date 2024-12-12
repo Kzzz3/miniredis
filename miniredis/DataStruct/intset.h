@@ -8,6 +8,8 @@
 #include <optional>
 #include <stdexcept>
 
+#include "Utility/allocator.hpp"
+
 using std::byte;
 
 constexpr uint32_t INTSET_ENC_INT16 = sizeof(int16_t);

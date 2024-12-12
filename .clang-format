@@ -1,0 +1,14 @@
+BasedOnStyle: Microsoft
+BreakBeforeBraces: Allman
+
+BraceWrapping:
+  AfterFunction: true
+  AfterStruct: true
+  AfterClass: true
+
+IndentWidth: 4
+ColumnLimit: 100
+PointerAlignment: Left
+ContinuationIndentWidth: 4
+AllowShortLambdasOnASingleLine: true
+# AllowShortFunctionsOnASingleLine: true

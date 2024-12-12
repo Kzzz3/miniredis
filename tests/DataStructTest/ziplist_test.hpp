@@ -98,7 +98,7 @@ inline void testBasicOperations() {
 	validate_ziplist_structure(zl);
 
 	check(zl);
-	::operator delete(zl);
+	ZipList::destroy(zl);
 }
 
 inline void testEdgeCases() {
@@ -124,7 +124,7 @@ inline void testEdgeCases() {
 	validate_ziplist_structure(zl);
 
 	check(zl);
-	::operator delete(zl);
+	ZipList::destroy(zl);
 }
 
 inline void testInsertAndChainUpdate() {
@@ -144,7 +144,7 @@ inline void testInsertAndChainUpdate() {
 	validate_ziplist_structure(zl);
 
 	check(zl);
-	::operator delete(zl);
+	ZipList::destroy(zl);
 }
 
 inline void testDeleteEdgeCases() {
@@ -162,7 +162,7 @@ inline void testDeleteEdgeCases() {
 	validate_ziplist_structure(zl);
 
 	check(zl);
-	::operator delete(zl);
+	ZipList::destroy(zl);
 }
 
 inline void testMemoryManagement() {
@@ -183,7 +183,7 @@ inline void testMemoryManagement() {
 	validate_ziplist_structure(zl);
 
 	check(zl);
-	::operator delete(zl);
+	ZipList::destroy(zl);
 }
 
 inline void testPerformance() {
@@ -209,7 +209,7 @@ inline void testPerformance() {
 	std::cout << "Performance Test - Deletion time for 100w elements: " << diff.count() << " seconds.\n";
 
 	check(zl);
-	::operator delete(zl);
+	ZipList::destroy(zl);
 }
 
 
