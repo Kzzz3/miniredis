@@ -9,10 +9,10 @@ using std::make_unique;
 
 inline RedisObj* SetObjectCreate()
 {
-	RedisObj* obj = reinterpret_cast<RedisObj*>(malloc(sizeof(RedisObj)));
+	RedisObj* obj = Allocator::create<RedisObj>();
 	obj->type = ObjType::REDIS_SET;
 	obj->encoding = ObjEncoding::REDIS_ENCODING_HT;
-	obj->data.ptr = new HashTable<Sds*>;
+	obj->data.ptr = Allocator::create<HashTable<Sds*>>();
 	obj->lru = GetSecTimestamp();
 	obj->refcount = 1;
 	return obj;
@@ -45,8 +45,8 @@ inline void SetObjectDestroy(RedisObj* obj)
 	{
 		Sds::destroy(key);
 	}
-	delete& ht;
-	std::free(obj);
+	Allocator::destroy(&ht);
+	Allocator::destroy(obj);
 }
 
 inline auto SetObjectMembers(RedisObj* obj)

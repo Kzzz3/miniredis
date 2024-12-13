@@ -1,9 +1,9 @@
-#pragma once 
+#pragma once
 
 #include <asio.hpp>
 
-using asio::ip::tcp;
 using asio::streambuf;
+using asio::ip::tcp;
 using std::unique_ptr;
 
 constexpr uint64_t BUFFER_MAX_SIZE = 1024 * 1024;
@@ -22,28 +22,30 @@ class Connection
 {
 public:
     uint64_t id;
-	tcp::socket socket;
-	ConnectionState state;
-	unique_ptr<streambuf> read_buffer;
-	unique_ptr<streambuf> write_buffer;
+    tcp::socket socket;
+    ConnectionState state;
+    unique_ptr<streambuf> read_buffer;
+    unique_ptr<streambuf> write_buffer;
 
 public:
-    Connection(uint64_t id, tcp::socket&& socket): 
-		id(id),
-		socket(std::move(socket)),
-        state(ConnectionState::CONN_STATE_NONE), 
-        read_buffer(std::make_unique<streambuf>(BUFFER_MAX_SIZE)),
-		write_buffer(std::make_unique<streambuf>(BUFFER_MAX_SIZE))
+    Connection(uint64_t id, tcp::socket&& socket)
+        : id(id), socket(std::move(socket)), state(ConnectionState::CONN_STATE_NONE),
+          read_buffer(std::make_unique<streambuf>(BUFFER_MAX_SIZE)),
+          write_buffer(std::make_unique<streambuf>(BUFFER_MAX_SIZE))
     {
     }
 
-    void AsyncSend(unique_ptr<Sds,decltype(&Sds::destroy)> &str)
+    void AsyncSend(unique_ptr<Sds, decltype(&Sds::destroy)>& str)
     {
-        socket.async_send(asio::const_buffer(str->buf, str->length()), [sds = std::move(str)](const asio::error_code& error, size_t length) {});
+        auto buffer = asio::const_buffer(str->buf, str->length());
+        socket.async_send(buffer,
+                          [sds = std::move(str)](const asio::error_code& error, size_t length) {});
     }
 
-    void AsyncSend(unique_ptr<Sds, decltype(&Sds::destroy)> &&str)
+    void AsyncSend(unique_ptr<Sds, decltype(&Sds::destroy)>&& str)
     {
-        socket.async_send(asio::const_buffer(str->buf, str->length()), [sds = std::move(str)](const asio::error_code& error, size_t length) {});
+        auto buffer = asio::const_buffer(str->buf, str->length());
+        socket.async_send(buffer,
+                          [sds = std::move(str)](const asio::error_code& error, size_t length) {});
     }
 };

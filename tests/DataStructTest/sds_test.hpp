@@ -7,69 +7,70 @@
 
 #include "DataStruct/sds.h"
 
-void test_create_empty()
+// Test basic creation with empty string
+void test_sds_create_empty()
 {
     const char* data = "";
     size_t len = strlen(data);
 
-    Sds* obj = Sds::create(data, len, len);
-    assert(obj != nullptr);
-    assert(obj->length() == 0);
-    assert(obj->capacity() == 0);
-    assert(std::strcmp(obj->buf, data) == 0);
+    Sds* sds = Sds::create(data, len, len);
+    assert(sds != nullptr);
+    assert(sds->length() == 0);
+    assert(sds->capacity() == 0);
+    assert(std::strcmp(sds->buf, data) == 0);
 
-    Sds::destroy(obj);
+    Sds::destroy(sds);
 }
 
-void test_create_max_length()
+void test_sds_create_max_length()
 {
     size_t len = 255; // Maximum for uint8_t
     char data[256];
     std::fill(data, data + len, 'A');
     data[len] = '\0';
 
-    Sds* obj = Sds::create(data, len, len);
-    assert(obj != nullptr);
-    assert(obj->length() == len);
-    assert(obj->capacity() == len);
-    assert(std::strcmp(obj->buf, data) == 0);
+    Sds* sds = Sds::create(data, len, len);
+    assert(sds != nullptr);
+    assert(sds->length() == len);
+    assert(sds->capacity() == len);
+    assert(std::strcmp(sds->buf, data) == 0);
 
-    Sds::destroy(obj);
+    Sds::destroy(sds);
 }
 
-void test_append_to_empty()
+void test_sds_append_to_empty()
 {
     const char* append_data = "AppendMe";
     size_t append_len = strlen(append_data);
 
-    Sds* obj = Sds::create("", 0, append_len);
-    obj = obj->append(append_data, append_len);
+    Sds* sds = Sds::create("", 0, append_len);
+    sds = sds->append(append_data, append_len);
 
-    assert(std::strcmp(obj->buf, append_data) == 0);
-    assert(obj->length() == append_len);
-    assert(obj->capacity() >= append_len);
+    assert(std::strcmp(sds->buf, append_data) == 0);
+    assert(sds->length() == append_len);
+    assert(sds->capacity() >= append_len);
 
-    Sds::destroy(obj);
+    Sds::destroy(sds);
 }
 
-void test_append_beyond_capacity()
+void test_sds_append_beyond_capacity()
 {
     const char* data = "Data";
     const char* append_data = "MoreData";
     size_t len = strlen(data);
     size_t append_len = strlen(append_data);
 
-    Sds* obj = Sds::create(data, len, len);
-    obj = obj->append(append_data, append_len);
+    Sds* sds = Sds::create(data, len, len);
+    sds = sds->append(append_data, append_len);
 
-    assert(std::strcmp(obj->buf, "DataMoreData") == 0);
-    assert(obj->length() == len + append_len);
-    assert(obj->capacity() >= len + append_len);
+    assert(std::strcmp(sds->buf, "DataMoreData") == 0);
+    assert(sds->length() == len + append_len);
+    assert(sds->capacity() >= len + append_len);
 
-    Sds::destroy(obj);
+    Sds::destroy(sds);
 }
 
-void test_concurrent_operations()
+void test_sds_concurrent_operations()
 {
     const char* data = "ConcurrentTest";
     size_t len = strlen(data);
@@ -78,9 +79,9 @@ void test_concurrent_operations()
     {
         for (int i = 0; i < 1000; ++i)
         {
-            Sds* obj = Sds::create(data, len, len);
-            assert(obj != nullptr);
-            Sds::destroy(obj);
+            Sds* sds = Sds::create(data, len, len);
+            assert(sds != nullptr);
+            Sds::destroy(sds);
         }
     };
 
@@ -90,7 +91,7 @@ void test_concurrent_operations()
     t2.join();
 }
 
-void test_performance_create_destroy()
+void test_sds_performance_create_destroy()
 {
     auto start = std::chrono::high_resolution_clock::now();
     const char* data = "PerformanceTest";
@@ -98,8 +99,8 @@ void test_performance_create_destroy()
 
     for (int i = 0; i < 1000000; ++i)
     {
-        Sds* obj = Sds::create(data, len, len);
-        Sds::destroy(obj);
+        Sds* sds = Sds::create(data, len, len);
+        Sds::destroy(sds);
     }
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -108,73 +109,74 @@ void test_performance_create_destroy()
               << std::endl;
 }
 
-void test_performance_append()
+void test_sds_performance_append()
 {
     auto start = std::chrono::high_resolution_clock::now();
     const char* append_data = "AppendMe";
     size_t append_len = strlen(append_data);
 
-    Sds* obj = Sds::create("", 0, append_len);
+    Sds* sds = Sds::create("", 0, append_len);
     std::string str(900000, 'a');
     // for (int i = 0; i < 1000000; ++i) {
-    //     obj = obj->append(append_data, append_len);
+    //     sds = sds->append(append_data, append_len);
     // }
-    obj = obj->append(str.c_str(), str.length());
+    sds = sds->append(str.c_str(), str.length());
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
     std::cout << "Performance Test - Append 1000000 times: " << duration << " ms" << std::endl;
 
-    Sds::destroy(obj);
+    Sds::destroy(sds);
 }
 
-void test_large_string()
+void test_sds_large_string()
 {
     size_t len = 1000000; // 1 million characters
     char* data = new char[len + 1];
     std::fill(data, data + len, 'A');
     data[len] = '\0';
 
-    Sds* obj = Sds::create(data, len, len);
-    assert(obj != nullptr);
-    assert(obj->length() == len);
-    assert(obj->capacity() >= len);
+    Sds* sds = Sds::create(data, len, len);
+    assert(sds != nullptr);
+    assert(sds->length() == len);
+    assert(sds->capacity() >= len);
 
-    Sds::destroy(obj);
+    Sds::destroy(sds);
     delete[] data;
 }
 
-inline void sds_tests()
+// Main test runner for SDS
+inline void run_sds_tests()
 {
-    using namespace std;
-
     try
     {
-        cout << "Running detailed tests..." << endl;
+        // Basic operations
+        std::cout << "Running basic operations tests...\n";
+        test_sds_create_empty();
+        test_sds_create_max_length();
+        std::cout << "✓ Basic operations tests passed\n\n";
 
-        test_create_empty();
-        cout << "test_create_empty passed" << endl;
+        // String operations
+        std::cout << "Running string operations tests...\n";
+        test_sds_append_to_empty();
+        test_sds_append_beyond_capacity();
+        std::cout << "✓ String operations tests passed\n\n";
 
-        test_create_max_length();
-        cout << "test_create_max_length passed" << endl;
+        // Concurrent operations
+        std::cout << "Running concurrent operations tests...\n";
+        test_sds_concurrent_operations();
+        std::cout << "✓ Concurrent operations tests passed\n\n";
 
-        test_append_to_empty();
-        cout << "test_append_to_empty passed" << endl;
-
-        test_append_beyond_capacity();
-        cout << "test_append_beyond_capacity passed" << endl;
-
-        test_concurrent_operations();
-        cout << "test_concurrent_operations passed" << endl;
-
-        test_performance_create_destroy();
-        test_performance_append();
-        test_large_string();
-
-        cout << "All detailed tests passed!" << endl;
+        // Performance tests
+        std::cout << "Running performance tests...\n";
+        test_sds_performance_create_destroy();
+        test_sds_performance_append();
+        test_sds_large_string();
+        std::cout << "✓ Performance tests passed\n";
     }
     catch (const std::exception& e)
     {
-        cerr << "Test failed: " << e.what() << endl;
+        std::cerr << "Test failed: " << e.what() << std::endl;
+        throw;
     }
 }

@@ -1,25 +1,26 @@
 #pragma once
-#include <vector>
-#include <memory>
 #include <functional>
+#include <memory>
 #include <unordered_map>
+#include <vector>
 
-#include "db.h"
 #include "DataStruct/sds.h"
-#include "DataType/setobj.hpp"
-#include "DataType/zsetobj.hpp"
 #include "DataType/hashobj.hpp"
 #include "DataType/listobj.hpp"
+#include "DataType/setobj.hpp"
 #include "DataType/stringobj.hpp"
+#include "DataType/zsetobj.hpp"
 #include "Networking/connection.h"
+#include "db.h"
 
 class Server;
 extern Server server;
 
-using std::weak_ptr;
 using std::shared_ptr;
+using std::weak_ptr;
 using Command = std::vector<Sds*>;
-using CommandMap = std::unordered_map<std::string, std::function<void(shared_ptr<Connection> conn, Command&)>>;
+using CommandMap =
+    std::unordered_map<std::string, std::function<void(shared_ptr<Connection> conn, Command&)>>;
 
 std::function<void(shared_ptr<Connection> conn, Command&)> GetCommandHandler(Sds* cmdtype);
 
@@ -60,8 +61,9 @@ void CmdZRevRange(shared_ptr<Connection> conn, Command& cmd);
 void CmdDel(shared_ptr<Connection> conn, Command& cmd);
 void CmdTTL(shared_ptr<Connection> conn, Command& cmd);
 void CmdExpire(shared_ptr<Connection> conn, Command& cmd);
-void FlushDB(shared_ptr<Connection> conn, Command& cmd);
-void FlushAll(shared_ptr<Connection> conn, Command& cmd);
+void CmdKeyNum(shared_ptr<Connection> conn, Command& cmd);
+void CmdFlushDB(shared_ptr<Connection> conn, Command& cmd);
+void CmdFlushAll(shared_ptr<Connection> conn, Command& cmd);
 
 unique_ptr<Sds, decltype(&Sds::destroy)> GenerateErrorReply(const char* errmsg);
 unique_ptr<Sds, decltype(&Sds::destroy)> GenerateReply(unique_ptr<ValueRef>& result);

@@ -7,10 +7,10 @@
 
 inline RedisObj* ZsetObjectCreate()
 {
-	RedisObj* obj = reinterpret_cast<RedisObj*>(std::malloc(sizeof(RedisObj)));
+	RedisObj* obj = Allocator::create<RedisObj>();
 	obj->type = ObjType::REDIS_ZSET;
 	obj->encoding = ObjEncoding::REDIS_ENCODING_RBTREE;
-	obj->data.ptr = new RBTree;
+	obj->data.ptr = Allocator::create<RBTree>();
 	obj->lru = GetSecTimestamp();
 	obj->refcount = 1;
 	return obj;
@@ -51,8 +51,8 @@ inline void ZsetObjectDestroy(RedisObj* obj)
 			Sds::destroy(member);
 		}
 	}
-	delete& zset;
-	std::free(obj);
+	Allocator::destroy(&zset);
+	Allocator::destroy(obj);
 }
 
 inline auto ZsetObjectRange(RedisObj* obj, double minScore, double maxScore)
