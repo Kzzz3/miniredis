@@ -17,7 +17,7 @@
 using namespace std;
 
 // Test string type commands
-inline void TestStringCommands()
+inline void TestStringCommands(int num)
 {
     cout << "Starting string commands test..." << endl;
 
@@ -30,7 +30,7 @@ inline void TestStringCommands()
     static thread_local mt19937 rng{random_device{}()};
 
     // SET and GET test
-    for (int i = 0; i < 5000; i++)
+    for (int i = 0; i < num; i++)
     {
         string key = GetRandomString(10);
         string value = GetRandomString(20);

@@ -13,8 +13,16 @@ void CmdSAdd(shared_ptr<Connection> conn, Command& cmd)
         db->kvstore[Sds::create(cmd[1])] = SetObjectCreate();
     }
 
+    auto obj = db->kvstore[cmd[1]];
+    if (obj->type != ObjType::REDIS_SET)
+    {
+        conn->AsyncSend(GenerateErrorReply(
+            "WRONGTYPE Operation against a key holding the wrong kind of value"));
+        return;
+    }
+
     for (size_t i = 2; i < size; i++)
-        SetObjectAdd(db->kvstore[cmd[1]], cmd[i]);
+        SetObjectAdd(obj, cmd[i]);
 }
 
 void CmdSRem(shared_ptr<Connection> conn, Command& cmd)
@@ -26,8 +34,15 @@ void CmdSRem(shared_ptr<Connection> conn, Command& cmd)
     RedisDb* db = server.selectDb(cmd[1]);
     if (db->kvstore.contains(cmd[1]))
     {
+        auto obj = db->kvstore[cmd[1]];
+        if (obj->type != ObjType::REDIS_SET)
+        {
+            conn->AsyncSend(GenerateErrorReply(
+                "WRONGTYPE Operation against a key holding the wrong kind of value"));
+            return;
+        }
         for (size_t i = 2; i < size; i++)
-            SetObjectRemove(db->kvstore[cmd[1]], cmd[i]);
+            SetObjectRemove(obj, cmd[i]);
     }
     else
     {
@@ -44,7 +59,14 @@ void CmdSMembers(shared_ptr<Connection> conn, Command& cmd)
     RedisDb* db = server.selectDb(cmd[1]);
     if (db->kvstore.contains(cmd[1]))
     {
-        auto reply = GenerateReply(SetObjectMembers(db->kvstore[cmd[1]]));
+        auto obj = db->kvstore[cmd[1]];
+        if (obj->type != ObjType::REDIS_SET)
+        {
+            conn->AsyncSend(GenerateErrorReply(
+                "WRONGTYPE Operation against a key holding the wrong kind of value"));
+            return;
+        }
+        auto reply = GenerateReply(SetObjectMembers(obj));
         conn->AsyncSend(std::move(reply));
     }
     else
@@ -62,7 +84,14 @@ void CmdSisMember(shared_ptr<Connection> conn, Command& cmd)
     RedisDb* db = server.selectDb(cmd[1]);
     if (db->kvstore.contains(cmd[1]))
     {
-        auto reply = SetObjectIsMember(db->kvstore[cmd[1]], cmd[2])
+        auto obj = db->kvstore[cmd[1]];
+        if (obj->type != ObjType::REDIS_SET)
+        {
+            conn->AsyncSend(GenerateErrorReply(
+                "WRONGTYPE Operation against a key holding the wrong kind of value"));
+            return;
+        }
+        auto reply = SetObjectIsMember(obj, cmd[2])
                          ? GenerateReply(make_unique<ValueRef>(Sds::create("true", 4), nullptr))
                          : GenerateReply(make_unique<ValueRef>(Sds::create("false", 5), nullptr));
         conn->AsyncSend(std::move(reply));

@@ -16,7 +16,7 @@
 
 using namespace std;
 
-inline void TestZSetCommands()
+inline void TestZSetCommands(int num)
 {
     cout << "Starting sorted set commands test..." << endl;
     asio::io_context io_context;
@@ -27,7 +27,7 @@ inline void TestZSetCommands()
     unordered_map<string, vector<string>> testKeys;
     static thread_local mt19937 rng{random_device{}()};
 
-    for (int i = 0; i < 10000; i++)
+    for (int i = 0; i < num; i++)
     {
         string key = GetRandomString(10);
         string member = GetRandomString(20);

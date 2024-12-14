@@ -3,17 +3,38 @@
 Server server;
 uint32_t DATABASE_NUM = 16;
 
-Server::Server() : connection_id(0), databases(DATABASE_NUM), exec_threadpool(1)
+Server::Server()
+    : connection_id(0), databases(DATABASE_NUM), io_context(16), exec_threadpool(1),
+      delobj_timer(io_context, std::chrono::seconds(1))
 {
 }
 
 void Server::start()
 {
     co_spawn(io_context, listener(), detached);
+    co_spawn(exec_threadpool, delObjectHandler(), detached);
     asio::signal_set signals(io_context, SIGINT, SIGTERM);
     signals.async_wait([&](const asio::error_code&, int) { io_context.stop(); });
 
     io_context.run();
+}
+
+awaitable<void> Server::delObjectHandler()
+{
+    for (;;)
+    {
+        co_await delobj_timer.async_wait(use_awaitable);
+        for (auto& db : databases)
+        {
+            for (auto& obj : db.deadobj)
+            {
+                if (obj->refcount == 0)
+                {
+                    delete obj;
+                }
+            }
+        }
+    }
 }
 
 awaitable<void> Server::listener()
@@ -76,13 +97,16 @@ awaitable<Command> Server::readCommandFromClient(shared_ptr<Connection> conn)
     const char* data = asio::buffer_cast<const char*>(conn->read_buffer->data());
     if (data[0] != '*')
     {
-        // err
+        conn->read_buffer->consume(n);
+        throw asio::system_error(asio::error::invalid_argument, "invalid command");
     }
 
     size_t bulkSize = std::stoi(std::string(data + 1, n - 3), nullptr, 10);
     if (bulkSize <= 0)
     {
         // err
+        conn->read_buffer->consume(n);
+        throw asio::system_error(asio::error::invalid_argument, "invalid command");
     }
     conn->read_buffer->consume(n);
 
@@ -112,7 +136,7 @@ awaitable<Command> Server::readCommandFromClient(shared_ptr<Connection> conn)
                 num = str2num<int64_t>(data + 1, n - 3);
                 if (!num.has_value() || num.value() <= 0)
                 {
-                    // err
+                    throw asio::system_error(asio::error::invalid_argument, "invalid command");
                 }
 
                 bulkLen = num.value();
@@ -130,7 +154,7 @@ awaitable<Command> Server::readCommandFromClient(shared_ptr<Connection> conn)
                 conn->read_buffer->consume(bulkLen + 2);
                 break;
             default:
-                break;
+                throw asio::system_error(asio::error::invalid_argument, "invalid command");
             }
         }
         co_return cmd;
@@ -150,5 +174,9 @@ RedisDb* Server::selectDb(Sds* key)
 
 std::function<void(shared_ptr<Connection>, Command&)> Server::CommandProcess(Command& cmd)
 {
+    // check command
+    if (cmd.size() == 0)
+        return nullptr;
+
     return GetCommandHandler(cmd[0]);
 }

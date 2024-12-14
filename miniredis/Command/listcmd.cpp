@@ -11,8 +11,16 @@ void CmdLPush(shared_ptr<Connection> conn, Command& cmd)
     if (!db->kvstore.contains(cmd[1]))
         db->kvstore[Sds::create(cmd[1])] = ListObjectCreate();
 
+    auto obj = db->kvstore[cmd[1]];
+    if (obj->type != ObjType::REDIS_LIST)
+    {
+        conn->AsyncSend(GenerateErrorReply(
+            "WRONGTYPE Operation against a key holding the wrong kind of value"));
+        return;
+    }
+
     for (size_t i = 2; i < size; i++)
-        ListObjectLPush(db->kvstore[cmd[1]], cmd[i]);
+        ListObjectLPush(obj, cmd[i]);
 }
 
 void CmdRPush(shared_ptr<Connection> conn, Command& cmd)
@@ -24,8 +32,17 @@ void CmdRPush(shared_ptr<Connection> conn, Command& cmd)
     RedisDb* db = server.selectDb(cmd[1]);
     if (!db->kvstore.contains(cmd[1]))
         db->kvstore[Sds::create(cmd[1])] = ListObjectCreate();
+
+    auto obj = db->kvstore[cmd[1]];
+    if (obj->type != ObjType::REDIS_LIST)
+    {
+        conn->AsyncSend(GenerateErrorReply(
+            "WRONGTYPE Operation against a key holding the wrong kind of value"));
+        return;
+    }
+
     for (size_t i = 2; i < size; i++)
-        ListObjectRPush(db->kvstore[cmd[1]], cmd[i]);
+        ListObjectRPush(obj, cmd[i]);
 }
 
 void CmdLPop(shared_ptr<Connection> conn, Command& cmd)
@@ -35,9 +52,23 @@ void CmdLPop(shared_ptr<Connection> conn, Command& cmd)
         return;
 
     RedisDb* db = server.selectDb(cmd[1]);
-    auto reply = db->kvstore.contains(cmd[1]) ? GenerateReply(ListObjectLPop(db->kvstore[cmd[1]]))
-                                              : GenerateErrorReply("nil");
-    conn->AsyncSend(std::move(reply));
+    if (db->kvstore.contains(cmd[1]))
+    {
+        auto obj = db->kvstore[cmd[1]];
+        if (obj->type != ObjType::REDIS_LIST)
+        {
+            conn->AsyncSend(GenerateErrorReply(
+                "WRONGTYPE Operation against a key holding the wrong kind of value"));
+            return;
+        }
+        auto reply = GenerateReply(ListObjectLPop(obj));
+        conn->AsyncSend(std::move(reply));
+    }
+    else
+    {
+        auto reply = GenerateErrorReply("nil");
+        conn->AsyncSend(std::move(reply));
+    }
 }
 
 void CmdRPop(shared_ptr<Connection> conn, Command& cmd)
@@ -47,9 +78,23 @@ void CmdRPop(shared_ptr<Connection> conn, Command& cmd)
         return;
 
     RedisDb* db = server.selectDb(cmd[1]);
-    auto reply = db->kvstore.contains(cmd[1]) ? GenerateReply(ListObjectRPop(db->kvstore[cmd[1]]))
-                                              : GenerateErrorReply("nil");
-    conn->AsyncSend(std::move(reply));
+    if (db->kvstore.contains(cmd[1]))
+    {
+        auto obj = db->kvstore[cmd[1]];
+        if (obj->type != ObjType::REDIS_LIST)
+        {
+            conn->AsyncSend(GenerateErrorReply(
+                "WRONGTYPE Operation against a key holding the wrong kind of value"));
+            return;
+        }
+        auto reply = GenerateReply(ListObjectRPop(obj));
+        conn->AsyncSend(std::move(reply));
+    }
+    else
+    {
+        auto reply = GenerateErrorReply("nil");
+        conn->AsyncSend(std::move(reply));
+    }
 }
 
 void CmdLRange(shared_ptr<Connection> conn, Command& cmd)
@@ -60,9 +105,13 @@ void CmdLRange(shared_ptr<Connection> conn, Command& cmd)
     RedisDb* db = server.selectDb(cmd[1]);
     if (db->kvstore.contains(cmd[1]))
     {
-        RedisObj* obj = db->kvstore[cmd[1]];
-        LinkedList& list = *reinterpret_cast<LinkedList*>(obj->data.ptr);
-
+        auto obj = db->kvstore[cmd[1]];
+        if (obj->type != ObjType::REDIS_LIST)
+        {
+            conn->AsyncSend(GenerateErrorReply(
+                "WRONGTYPE Operation against a key holding the wrong kind of value"));
+            return;
+        }
         int start = sds2num<int>(cmd[2]).value();
         int end = sds2num<int>(cmd[3]).value();
 

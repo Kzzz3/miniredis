@@ -108,8 +108,6 @@ inline RedisObj* StringObjectUpdate(RedisObj* obj, Sds* str)
 
 inline auto StringObjectGet(RedisObj* obj)
 {
-    Sds* value = nullptr;
-    std::vector<Sds*> result;
     if (obj->encoding == ObjEncoding::REDIS_ENCODING_INT)
     {
         return make_unique<ValueRef>(num2sds(obj->data.num), nullptr);

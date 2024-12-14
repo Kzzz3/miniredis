@@ -17,9 +17,15 @@ void CmdDel(shared_ptr<Connection> conn, Command& cmd)
 
         // delete the key-value pair
         db->kvstore.erase(key);
+        Sds::destroy(key);
+
+        if(obj->refcount > 1)
+        {
+            obj->refcount--;
+            db->deadobj.push_back(obj);
+        }
 
         // destroy the key and value(object)
-        Sds::destroy(key);
         switch (obj->type)
         {
         case ObjType::REDIS_STRING:

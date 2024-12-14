@@ -16,7 +16,7 @@
 
 using namespace std;
 
-inline void TestListCommands()
+inline void TestListCommands(int num)
 {
     cout << "Starting list commands test..." << endl;
     asio::io_context io_context;
@@ -27,7 +27,7 @@ inline void TestListCommands()
     unordered_map<string, vector<string>> testKeys;
     static thread_local mt19937 rng{random_device{}()};
 
-    for (int i = 0; i < 10000; i++)
+    for (int i = 0; i < num; i++)
     {
         string key = GetRandomString(10);
         string value = GetRandomString(20);

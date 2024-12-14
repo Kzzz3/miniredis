@@ -28,11 +28,9 @@ inline void ZsetObjectRemove(RedisObj* obj, Sds* member)
 	if (zset.contains(member))
 	{
 		auto entry = zset.find(member);
-		double entryscore = entry->first;
 		Sds* entryvalue = entry->second;
 
 		zset.remove(member);
-
 		Sds::destroy(entryvalue);
 	}
 }

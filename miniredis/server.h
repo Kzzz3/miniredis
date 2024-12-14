@@ -34,17 +34,17 @@ public:
 	std::vector<RedisDb> databases;
 	std::atomic<uint64_t> connection_id;
 
-	//reade and parse command
-
 	//execute thread
 	asio::static_thread_pool exec_threadpool;
 
-	//to do: use asio::strand to write response to client instead of using a single thread
+	asio::steady_timer delobj_timer;
 
 public:
 	Server();
 
 	void start();
+
+	awaitable<void> delObjectHandler();
 	
 	awaitable<void> listener();
 	awaitable<void> handleConnection(shared_ptr<Connection> conn);
