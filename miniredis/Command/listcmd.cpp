@@ -1,5 +1,5 @@
-#include "command.h"
 #include "server.h"
+#include "command.h"
 
 void CmdLPush(shared_ptr<Connection> conn, Command& cmd)
 {

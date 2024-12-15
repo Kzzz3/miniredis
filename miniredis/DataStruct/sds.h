@@ -1,14 +1,14 @@
 #pragma once
-#include <cassert>
-#include <concepts>
-#include <cstring>
 #include <limits>
+#include <cassert>
+#include <cstring>
+#include <concepts>
 #include <optional>
 #include <stdexcept>
 #include <string_view>
 
-#include "Utility/allocator.hpp"
 #include "Utility/utility.hpp"
+#include "Utility/allocator.hpp"
 
 using std::hash;
 using std::invoke_result_t;
@@ -44,10 +44,10 @@ struct SdsHdr
 #pragma pack(push, 1)
 class Sds
 {
-  public:
+public:
     char buf[1] = {'\0'};
 
-  public:
+public:
     static void destroy(Sds* s);
 
     static Sds* create(Sds* str, size_t alloc = 0);

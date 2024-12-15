@@ -1,5 +1,5 @@
-#include "command.h"
 #include "server.h"
+#include "command.h"
 
 void CmdZAdd(shared_ptr<Connection> conn, Command& cmd)
 {

@@ -1,11 +1,11 @@
 #pragma once
-#include <cstdint>
-#include <cstring>
 #include <memory>
 #include <string>
+#include <cstdint>
+#include <cstring>
 
-#include "Utility/allocator.hpp"
 #include "Utility/utility.hpp"
+#include "Utility/allocator.hpp"
 
 constexpr uint8_t ZIPLIST_END = 0xff;
 constexpr uint8_t ZIPLIST_INT_64B = 0xe0;
@@ -33,13 +33,13 @@ struct ZlEntry
 #pragma pack(push, 1)
 class ZipList
 {
-  public:
+public:
     uint32_t total_bytes;
     uint32_t last_offset;
     uint16_t items_num;
     uint8_t buf[1] = {ZIPLIST_END};
 
-  public:
+public:
     static ZipList* create();
     static void destroy(ZipList* zl);
 
@@ -64,4 +64,7 @@ ZipList* adjustSubsequentNodes(ZipList* zl, size_t offset, int diff);
 // outside functions
 void entryDecode(uint8_t* p, ZlEntry& entry);
 void entryEncode(uint8_t* p, ZlEntry& entry);
-constexpr bool isStr(uint8_t encoding) { return (encoding & 0xC0) < 0xC0; }
+constexpr bool isStr(uint8_t encoding)
+{
+    return (encoding & 0xC0) < 0xC0;
+}

@@ -1,5 +1,5 @@
-#include "command.h"
 #include "server.h"
+#include "command.h"
 
 std::unordered_map<std::string, std::function<void(shared_ptr<Connection> conn, Command&)>>
     commands_map = {
