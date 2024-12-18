@@ -8,12 +8,13 @@ void CmdHSet(shared_ptr<Connection> conn, Command& cmd)
         return;
 
     RedisDb* db = server.selectDb(cmd[1]);
-    if (!db->kvstore.contains(cmd[1]))
+    HashTable<RedisObj*>& kvstore = *db->kvstore;
+    if (!kvstore.contains(cmd[1]))
     {
-        db->kvstore[Sds::create(cmd[1])] = HashObjectCreate();
+        kvstore[Sds::create(cmd[1])] = HashObjectCreate();
     }
 
-    auto obj = db->kvstore[cmd[1]];
+    auto obj = kvstore[cmd[1]];
     if (obj->type != ObjType::REDIS_HASH)
     {
         conn->AsyncSend(GenerateErrorReply(
@@ -34,9 +35,10 @@ void CmdHGet(shared_ptr<Connection> conn, Command& cmd)
         return;
 
     RedisDb* db = server.selectDb(cmd[1]);
-    if (db->kvstore.contains(cmd[1]))
+    HashTable<RedisObj*>& kvstore = *db->kvstore;
+    if (kvstore.contains(cmd[1]))
     {
-        auto obj = db->kvstore[cmd[1]];
+        auto obj = kvstore[cmd[1]];
         if (obj->type != ObjType::REDIS_HASH)
         {
             conn->AsyncSend(GenerateErrorReply(
@@ -62,9 +64,10 @@ void CmdHDel(shared_ptr<Connection> conn, Command& cmd)
         return;
 
     RedisDb* db = server.selectDb(cmd[1]);
-    if (db->kvstore.contains(cmd[1]))
+    HashTable<RedisObj*>& kvstore = *db->kvstore;
+    if (kvstore.contains(cmd[1]))
     {
-        auto obj = db->kvstore[cmd[1]];
+        auto obj = kvstore[cmd[1]];
         if (obj->type != ObjType::REDIS_HASH)
         {
             conn->AsyncSend(GenerateErrorReply(
@@ -82,9 +85,10 @@ void CmdHKeys(shared_ptr<Connection> conn, Command& cmd)
         return;
 
     RedisDb* db = server.selectDb(cmd[1]);
-    if (db->kvstore.contains(cmd[1]))
+    HashTable<RedisObj*>& kvstore = *db->kvstore;
+    if (kvstore.contains(cmd[1]))
     {
-        auto obj = db->kvstore[cmd[1]];
+        auto obj = kvstore[cmd[1]];
         if (obj->type != ObjType::REDIS_HASH)
         {
             conn->AsyncSend(GenerateErrorReply(
@@ -107,9 +111,10 @@ void CmdHGetAll(shared_ptr<Connection> conn, Command& cmd)
         return;
 
     RedisDb* db = server.selectDb(cmd[1]);
-    if (db->kvstore.contains(cmd[1]))
+    HashTable<RedisObj*>& kvstore = *db->kvstore;
+    if (kvstore.contains(cmd[1]))
     {
-        auto obj = db->kvstore[cmd[1]];
+        auto obj = kvstore[cmd[1]];
         if (obj->type != ObjType::REDIS_HASH)
         {
             conn->AsyncSend(GenerateErrorReply(

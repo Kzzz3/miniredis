@@ -8,12 +8,13 @@ void CmdSAdd(shared_ptr<Connection> conn, Command& cmd)
         return;
 
     RedisDb* db = server.selectDb(cmd[1]);
-    if (!db->kvstore.contains(cmd[1]))
+    HashTable<RedisObj*>& kvstore = *db->kvstore;
+    if (!kvstore.contains(cmd[1]))
     {
-        db->kvstore[Sds::create(cmd[1])] = SetObjectCreate();
+        kvstore[Sds::create(cmd[1])] = SetObjectCreate();
     }
 
-    auto obj = db->kvstore[cmd[1]];
+    auto obj = kvstore[cmd[1]];
     if (obj->type != ObjType::REDIS_SET)
     {
         conn->AsyncSend(GenerateErrorReply(
@@ -32,9 +33,10 @@ void CmdSRem(shared_ptr<Connection> conn, Command& cmd)
         return;
 
     RedisDb* db = server.selectDb(cmd[1]);
-    if (db->kvstore.contains(cmd[1]))
+    HashTable<RedisObj*>& kvstore = *db->kvstore;
+    if (kvstore.contains(cmd[1]))
     {
-        auto obj = db->kvstore[cmd[1]];
+        auto obj = kvstore[cmd[1]];
         if (obj->type != ObjType::REDIS_SET)
         {
             conn->AsyncSend(GenerateErrorReply(
@@ -57,9 +59,10 @@ void CmdSMembers(shared_ptr<Connection> conn, Command& cmd)
     if (size != 2)
         return;
     RedisDb* db = server.selectDb(cmd[1]);
-    if (db->kvstore.contains(cmd[1]))
+    HashTable<RedisObj*>& kvstore = *db->kvstore;
+    if (kvstore.contains(cmd[1]))
     {
-        auto obj = db->kvstore[cmd[1]];
+        auto obj = kvstore[cmd[1]];
         if (obj->type != ObjType::REDIS_SET)
         {
             conn->AsyncSend(GenerateErrorReply(
@@ -82,9 +85,10 @@ void CmdSisMember(shared_ptr<Connection> conn, Command& cmd)
         return;
 
     RedisDb* db = server.selectDb(cmd[1]);
-    if (db->kvstore.contains(cmd[1]))
+    HashTable<RedisObj*>& kvstore = *db->kvstore;
+    if (kvstore.contains(cmd[1]))
     {
-        auto obj = db->kvstore[cmd[1]];
+        auto obj = kvstore[cmd[1]];
         if (obj->type != ObjType::REDIS_SET)
         {
             conn->AsyncSend(GenerateErrorReply(

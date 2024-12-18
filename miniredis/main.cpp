@@ -20,7 +20,6 @@ std::string GenerateReply(std::vector<std::string>& result)
 
 int main()
 {
-
     std::thread([]() { server.start(); }).detach();
 
     sleep(1);

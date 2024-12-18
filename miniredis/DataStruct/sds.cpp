@@ -3,11 +3,54 @@
 void Sds::destroy(Sds* s)
 {
     access_sdshdr(s,
-                  [](auto psdshdr) -> void
-                  {
+                  [](auto psdshdr) -> void {
                       Allocator::destroy_with_extra<remove_pointer_t<decltype(psdshdr)>>(
                           psdshdr, psdshdr->alloc);
                   });
+}
+
+vector<char> Sds::serialize(Sds* str)
+{
+    std::string_view sv(str->buf, str->length());
+    return struct_pack::serialize(sv);
+}
+
+void Sds::serialize_to(ofstream& ofs, Sds* str)
+{
+    std::string_view sv(str->buf, str->length());
+    struct_pack::serialize_to(ofs, sv);
+}
+
+void Sds::serialize_to(vector<char>& vec, Sds* str)
+{
+    std::string_view sv(str->buf, str->length());
+    struct_pack::serialize_to(vec, sv);
+}
+
+Sds* Sds::deserialize_from(ifstream& ifs)
+{
+    auto sv = struct_pack::deserialize<string>(ifs);
+    if (sv.has_value())
+    {
+        return create(sv.value().data(), sv.value().size());
+    }
+    else
+    {
+        throw std::runtime_error("deserialize failed");
+    }
+}
+
+Sds* Sds::deserialize_from(const vector<char>& vec)
+{
+    auto sv = struct_pack::deserialize<string>(vec);
+    if (sv.has_value())
+    {
+        return create(sv.value().data(), sv.value().size());
+    }
+    else
+    {
+        throw std::runtime_error("deserialize failed");
+    }
 }
 
 Sds* Sds::create(Sds* str, size_t alloc)
@@ -17,6 +60,8 @@ Sds* Sds::create(Sds* str, size_t alloc)
 
 Sds* Sds::create(const char* str, size_t len, size_t alloc)
 {
+    if (len == 0)
+        len = strlen(str);
     alloc = max(alloc, len);
 
     auto allocate = [str, len, alloc]<typename T>() -> Sds*

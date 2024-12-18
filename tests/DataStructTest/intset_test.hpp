@@ -4,7 +4,8 @@
 #include <chrono>
 
 // Test basic intset operations
-inline void test_intset_basic_ops() {
+inline void test_intset_basic_ops()
+{
     IntSet* is = IntSet::create();
 
     // Test insertion
@@ -21,7 +22,8 @@ inline void test_intset_basic_ops() {
 }
 
 // Test encoding upgrades
-inline void test_intset_upgrades() {
+inline void test_intset_upgrades()
+{
     IntSet* is = IntSet::create();
 
     // Test encoding upgrades
@@ -36,17 +38,19 @@ inline void test_intset_upgrades() {
 }
 
 // Test performance
-inline void test_intset_performance() {
+inline void test_intset_performance()
+{
     IntSet* is = IntSet::create();
     const int TEST_SIZE = 100000;
 
     auto start = std::chrono::high_resolution_clock::now();
-    
+
     // Insert test
-    for (int i = 0; i < TEST_SIZE; ++i) {
+    for (int i = 0; i < TEST_SIZE; ++i)
+    {
         is = is->insert(i);
     }
-    
+
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
     std::cout << "IntSet insert " << TEST_SIZE << " items took: " << duration << "ms\n";
@@ -55,8 +59,10 @@ inline void test_intset_performance() {
 }
 
 // Main test runner for intset
-inline void run_intset_tests() {
-    try {
+inline void run_intset_tests()
+{
+    try
+    {
         std::cout << "Running basic operations tests...\n";
         test_intset_basic_ops();
         std::cout << "✓ Basic operations tests passed\n\n";
@@ -69,7 +75,8 @@ inline void run_intset_tests() {
         test_intset_performance();
         std::cout << "✓ Performance tests passed\n";
     }
-    catch (const std::exception& e) {
+    catch (const std::exception& e)
+    {
         std::cerr << "Test failed: " << e.what() << std::endl;
         throw;
     }

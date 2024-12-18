@@ -1,6 +1,12 @@
 #pragma once
-#include <cstdint>
 #include <memory>
+#include <cstdint>
+#include <fstream>
+
+using std::ifstream;
+using std::ofstream;
+
+#include "DataStruct/sds.h"
 
 constexpr size_t EMBSTR_MAX_LENGTH = 41;
 

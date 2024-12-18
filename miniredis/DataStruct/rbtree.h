@@ -8,20 +8,24 @@
 
 #include "DataStruct/sds.h"
 
-struct Compare {
-    bool operator()(const std::pair<double, Sds*>& a,
-        const std::pair<double, Sds*>& b) const {
+struct Compare
+{
+    bool operator()(const std::pair<double, Sds*>& a, const std::pair<double, Sds*>& b) const
+    {
         return a.first < b.first || (a.first == b.first && a.second == nullptr) ||
-                (a.first == b.first && b.second != nullptr&&
-                std::string_view(a.second->buf, a.second->length()) < 
-                std::string_view(b.second->buf, b.second->length()));
+               (a.first == b.first && b.second != nullptr &&
+                std::string_view(a.second->buf, a.second->length()) <
+                    std::string_view(b.second->buf, b.second->length()));
     }
 };
 
-class RBTree {
+class RBTree
+{
 public:
+    static void serialize_to(ofstream& ofs, RBTree* rbt);
+    static RBTree* deserialize_from(ifstream& ifs);
 
-	bool contains(Sds* member);
+    bool contains(Sds* member);
     void remove(Sds* member);
     void add(double score, Sds* member);
     std::multiset<std::pair<double, Sds*>, Compare>::const_iterator find(Sds* member);

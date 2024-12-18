@@ -5,18 +5,46 @@ uint32_t DATABASE_NUM = 16;
 
 Server::Server()
     : connection_id(0), databases(DATABASE_NUM), io_context(16), exec_threadpool(1),
-      delobj_timer(io_context, std::chrono::seconds(1))
+      delobj_timer(io_context, std::chrono::seconds(60))
 {
+    if (std::filesystem::exists("rdb.dat"))
+        loadRDB("rdb.dat");
 }
 
 void Server::start()
 {
-    co_spawn(io_context, listener(), detached);
+    co_spawn(io_context, listenerHandler(), detached);
     co_spawn(exec_threadpool, delObjectHandler(), detached);
+
+    // listen for signals
     asio::signal_set signals(io_context, SIGINT, SIGTERM);
     signals.async_wait([&](const asio::error_code&, int) { io_context.stop(); });
 
     io_context.run();
+}
+
+void Server::loadRDB(const string& path)
+{
+    ifstream ifs(path, std::ios::in | std::ios::binary);
+    if (!ifs)
+        throw std::runtime_error("open rdb file failed");
+
+    for (auto& db : databases)
+    {
+        db.deserialize_from(ifs);
+    }
+}
+
+void Server::storeRDB(const string& path)
+{
+    ofstream ofs(path, std::ios::out | std::ios::binary);
+    if (!ofs)
+        throw std::runtime_error("open rdb file failed");
+
+    for (auto& db : databases)
+    {
+        db.serialize_to(ofs);
+    }
 }
 
 awaitable<void> Server::delObjectHandler()
@@ -26,7 +54,8 @@ awaitable<void> Server::delObjectHandler()
         co_await delobj_timer.async_wait(use_awaitable);
         for (auto& db : databases)
         {
-            for (auto& obj : db.deadobj)
+            std::list<RedisObj*>& deadobj = *db.deadobj;
+            for (auto& obj : deadobj)
             {
                 if (obj->refcount == 0)
                 {
@@ -34,10 +63,13 @@ awaitable<void> Server::delObjectHandler()
                 }
             }
         }
+
+        storeRDB("rdb_temp.dat");
+        std::filesystem::rename("rdb_temp.dat", "rdb.dat");
     }
 }
 
-awaitable<void> Server::listener()
+awaitable<void> Server::listenerHandler()
 {
     auto executor = co_await this_coro::executor;
     tcp::acceptor acceptor(executor, {tcp::v4(), 10087});
@@ -61,8 +93,7 @@ awaitable<void> Server::handleConnection(shared_ptr<Connection> conn)
         Command cmd = co_await readCommandFromClient(conn);
         if (cmd.empty())
         {
-            conn->state = ConnectionState::CONN_STATE_CLOSED;
-            conn->socket.close();
+            conn->Close();
             co_return;
         }
 

@@ -1,5 +1,7 @@
 #pragma once
+#include <vector>
 #include <limits>
+#include <fstream>
 #include <cassert>
 #include <cstring>
 #include <concepts>
@@ -7,19 +9,23 @@
 #include <stdexcept>
 #include <string_view>
 
+#include <ylt/struct_pack.hpp>
+
 #include "Utility/utility.hpp"
 #include "Utility/allocator.hpp"
 
 using std::hash;
+using std::ifstream;
 using std::invoke_result_t;
+using std::max;
 using std::numeric_limits;
+using std::ofstream;
 using std::optional;
 using std::remove_pointer_t;
 using std::string;
 using std::string_view;
-
-using std::max;
 using std::to_string;
+using std::vector;
 
 constexpr uint8_t SDS_TYPE_8 = sizeof(uint8_t);
 constexpr uint8_t SDS_TYPE_16 = sizeof(uint16_t);
@@ -49,9 +55,15 @@ public:
 
 public:
     static void destroy(Sds* s);
-
     static Sds* create(Sds* str, size_t alloc = 0);
-    static Sds* create(const char* str, size_t len, size_t alloc = 0);
+    static Sds* create(const char* str, size_t len = 0, size_t alloc = 0);
+
+    static vector<char> serialize(Sds* str);
+    static void serialize_to(ofstream& ofs, Sds* str);
+    static void serialize_to(vector<char>& vec, Sds* str);
+
+    static Sds* deserialize_from(ifstream& ifs);
+    static Sds* deserialize_from(const vector<char>& vec);
 
     size_t length();
     size_t capacity();

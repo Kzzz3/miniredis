@@ -1,12 +1,15 @@
 #include <atomic>
 #include <thread>
-
+#include <iostream>
 #include <asio.hpp>
 
 #include "RandomCommand.hpp"
 
 using asio::io_context;
 using asio::thread_pool;
+using std::cout;
+using std::endl;
+using std::thread;
 
 int main()
 {
@@ -21,8 +24,11 @@ int main()
         });
     thread ioThread([&]() { ctxIo.run(); });
 
-    thread_pool pool(8);
-    for (int i = 0; i < 8; ++i)
+    int thread_num = thread::hardware_concurrency();
+    cout << "thread_num: " << thread_num << endl;
+
+    thread_pool pool(thread_num);
+    for (int i = 0; i < thread_num; ++i)
     {
         asio::post(pool, [&]() { RandomCommand(ctxIo, stop); });
     }

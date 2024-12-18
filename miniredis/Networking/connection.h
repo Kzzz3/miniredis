@@ -8,7 +8,7 @@ using std::lock_guard;
 using std::mutex;
 using std::unique_ptr;
 
-constexpr uint64_t BUFFER_MAX_SIZE = 1024 * 1024;
+constexpr uint64_t BUFFER_MAX_SIZE = 1024 * 1024 * 15;
 
 enum class ConnectionState
 {

@@ -4,7 +4,8 @@
 #include <chrono>
 
 // Test basic zset operations
-inline void test_zset_basic_ops() {
+inline void test_zset_basic_ops()
+{
     RBTree zset;
 
     // Create test members
@@ -23,9 +24,10 @@ inline void test_zset_basic_ops() {
 }
 
 // Test edge cases
-inline void test_zset_edge_cases() {
+inline void test_zset_edge_cases()
+{
     RBTree zset;
-    
+
     // Test empty set operations
     auto member = Sds::create("test", 4);
     assert(zset.rank(member) == std::nullopt);
@@ -40,34 +42,39 @@ inline void test_zset_edge_cases() {
 }
 
 // Test performance
-inline void test_zset_performance() {
+inline void test_zset_performance()
+{
     RBTree zset;
     const int TEST_SIZE = 10000;
     std::vector<Sds*> members;
 
     auto start = std::chrono::high_resolution_clock::now();
-    
+
     // Insert test
-    for (int i = 0; i < TEST_SIZE; ++i) {
+    for (int i = 0; i < TEST_SIZE; ++i)
+    {
         std::string name = "member" + std::to_string(i);
         auto member = Sds::create(name.c_str(), name.length());
         members.push_back(member);
         zset.add(i, member);
     }
-    
+
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
     std::cout << "ZSet insert " << TEST_SIZE << " items took: " << duration << "ms\n";
 
     // Cleanup
-    for (auto member : members) {
+    for (auto member : members)
+    {
         Sds::destroy(member);
     }
 }
 
 // Main test runner for zset
-inline void run_zset_tests() {
-    try {
+inline void run_zset_tests()
+{
+    try
+    {
         std::cout << "Running basic operations tests...\n";
         test_zset_basic_ops();
         std::cout << "✓ Basic operations tests passed\n\n";
@@ -80,7 +87,8 @@ inline void run_zset_tests() {
         test_zset_performance();
         std::cout << "✓ Performance tests passed\n";
     }
-    catch (const std::exception& e) {
+    catch (const std::exception& e)
+    {
         std::cerr << "Test failed: " << e.what() << std::endl;
         throw;
     }

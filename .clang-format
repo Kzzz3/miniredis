@@ -12,5 +12,6 @@ SortIncludes: false
 PointerAlignment: Left
 AccessModifierOffset: -4
 ContinuationIndentWidth: 4
+SortUsingDeclarations: false
 AllowShortLambdasOnASingleLine: true
 # AllowShortFunctionsOnASingleLine: true

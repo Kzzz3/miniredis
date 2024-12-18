@@ -2,14 +2,13 @@
 
 #include <memory>
 
-#include "DataStruct/hashtable.h"
-#include "Utility/utility.hpp"
 #include "redisobj.h"
-
-using std::unique_ptr;
-using std::vector;
+#include "Utility/utility.hpp"
+#include "DataStruct/hashtable.h"
 
 using std::make_unique;
+using std::unique_ptr;
+using std::vector;
 
 inline RedisObj* HashObjectCreate()
 {
@@ -83,4 +82,16 @@ inline auto HashObjectKVs(RedisObj* obj)
         result.emplace_back(make_unique<ValueRef>(value, obj));
     }
     return result;
+}
+
+inline void HashObjectDataSerialize(ofstream& ofs, RedisObj* obj)
+{
+    HashTable<Sds*>::serialize_to(ofs, reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr),
+                                  [](ofstream& ofs, Sds* value) { Sds::serialize_to(ofs, value); });
+}
+
+inline void HashObjectDataDeserialize(ifstream& ifs, RedisObj* obj)
+{
+    auto func = [](ifstream& ifs) { return Sds::deserialize_from(ifs); };
+    obj->data.ptr = HashTable<Sds*>::deserialize_from(ifs, func);
 }

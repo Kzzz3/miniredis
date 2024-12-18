@@ -1,9 +1,19 @@
 #pragma once
+#include <fstream>
+#include <optional>
+#include <memory>
+#include <cstdint>
+#include <stdexcept>
 
+#include "redisobj.h"
 #include "DataStruct/sds.h"
 #include "Utility/allocator.hpp"
 #include "Utility/utility.hpp"
-#include "redisobj.h"
+
+using std::ifstream;
+using std::ofstream;
+using std::optional;
+using std::unique_ptr;
 
 inline RedisObj* StringObjectCreate(Sds* str)
 {
@@ -130,5 +140,45 @@ inline void StringObjectDestroy(RedisObj* obj)
     {
         Sds::destroy(reinterpret_cast<Sds*>(obj->data.ptr));
         Allocator::destroy(obj);
+    }
+}
+
+inline void StringObjectDataSerialize(ofstream& ofs, RedisObj* obj)
+{
+    switch (obj->encoding)
+    {
+    case ObjEncoding::REDIS_ENCODING_INT:
+        struct_pack::serialize_to(ofs, obj->data.num);
+        break;
+    case ObjEncoding::REDIS_ENCODING_EMBSTR:
+        Sds::serialize_to(ofs, reinterpret_cast<Sds*>(obj->data.ptr));
+        break;
+    case ObjEncoding::REDIS_ENCODING_RAW:
+        Sds::serialize_to(ofs, reinterpret_cast<Sds*>(obj->data.ptr));
+        break;
+    default:
+        throw std::runtime_error("invalid encoding");
+    }
+}
+
+inline RedisObj* StringObjectDataDeserialize(ifstream& ifs, RedisObj* obj)
+{
+    struct_pack::expected<int64_t, struct_pack::err_code> expect_num;
+    switch (obj->encoding)
+    {
+    case ObjEncoding::REDIS_ENCODING_INT:
+        expect_num = struct_pack::deserialize<int64_t>(ifs);
+        if (!expect_num.has_value())
+            throw std::runtime_error("deserialize failed");
+        obj->data.num = expect_num.value();
+        break;
+    case ObjEncoding::REDIS_ENCODING_EMBSTR:
+        obj->data.ptr = Sds::deserialize_from(ifs);
+        break;
+    case ObjEncoding::REDIS_ENCODING_RAW:
+        obj->data.ptr = Sds::deserialize_from(ifs);
+        break;
+    default:
+        throw std::runtime_error("invalid encoding");
     }
 }

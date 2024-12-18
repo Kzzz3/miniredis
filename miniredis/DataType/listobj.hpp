@@ -91,3 +91,13 @@ inline void ListObjectDestroy(RedisObj* obj)
     Allocator::destroy(&list);
     Allocator::destroy(obj);
 }
+
+inline void ListObjectDataSerialize(ofstream& ofs, RedisObj* obj)
+{
+    LinkedList::serialize_to(ofs, reinterpret_cast<LinkedList*>(obj->data.ptr));
+}
+
+inline void ListObjectDataDeserialize(ifstream& ifs, RedisObj* obj)
+{
+    obj->data.ptr = LinkedList::deserialize_from(ifs);
+}

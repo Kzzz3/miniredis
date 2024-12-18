@@ -8,12 +8,13 @@ void CmdZAdd(shared_ptr<Connection> conn, Command& cmd)
         return;
 
     RedisDb* db = server.selectDb(cmd[1]);
-    if (!db->kvstore.contains(cmd[1]))
+    HashTable<RedisObj*>& kvstore = *db->kvstore;
+    if (!kvstore.contains(cmd[1]))
     {
-        db->kvstore[Sds::create(cmd[1])] = ZsetObjectCreate();
+        kvstore[Sds::create(cmd[1])] = ZsetObjectCreate();
     }
 
-    auto obj = db->kvstore[cmd[1]];
+    auto obj = kvstore[cmd[1]];
     if (obj->type != ObjType::REDIS_ZSET)
     {
         conn->AsyncSend(GenerateErrorReply(
@@ -34,9 +35,10 @@ void CmdZRem(shared_ptr<Connection> conn, Command& cmd)
         return;
 
     RedisDb* db = server.selectDb(cmd[1]);
-    if (db->kvstore.contains(cmd[1]))
+    HashTable<RedisObj*>& kvstore = *db->kvstore;
+    if (kvstore.contains(cmd[1]))
     {
-        auto obj = db->kvstore[cmd[1]];
+        auto obj = kvstore[cmd[1]];
         if (obj->type != ObjType::REDIS_ZSET)
         {
             conn->AsyncSend(GenerateErrorReply(
@@ -60,9 +62,10 @@ void CmdZRange(shared_ptr<Connection> conn, Command& cmd)
         return;
 
     RedisDb* db = server.selectDb(cmd[1]);
-    if (db->kvstore.contains(cmd[1]))
+    HashTable<RedisObj*>& kvstore = *db->kvstore;
+    if (kvstore.contains(cmd[1]))
     {
-        auto obj = db->kvstore[cmd[1]];
+        auto obj = kvstore[cmd[1]];
         if (obj->type != ObjType::REDIS_ZSET)
         {
             conn->AsyncSend(GenerateErrorReply(
@@ -87,9 +90,10 @@ void CmdZRevRange(shared_ptr<Connection> conn, Command& cmd)
         return;
 
     RedisDb* db = server.selectDb(cmd[1]);
-    if (db->kvstore.contains(cmd[1]))
+    HashTable<RedisObj*>& kvstore = *db->kvstore;
+    if (kvstore.contains(cmd[1]))
     {
-        auto obj = db->kvstore[cmd[1]];
+        auto obj = kvstore[cmd[1]];
         if (obj->type != ObjType::REDIS_ZSET)
         {
             conn->AsyncSend(GenerateErrorReply(
