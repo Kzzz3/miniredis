@@ -29,6 +29,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE asio)
 find_package(yalantinglibs CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE yalantinglibs::yalantinglibs)
 
+find_package(ZLIB REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE ZLIB::ZLIB)
+
 # 添加编译器选项
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX)

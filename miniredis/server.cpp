@@ -5,8 +5,11 @@ uint32_t DATABASE_NUM = 16;
 
 Server::Server()
     : connection_id(0), databases(DATABASE_NUM), io_context(16), exec_threadpool(1),
-      delobj_timer(io_context, std::chrono::seconds(60))
+      delobj_timer(io_context)
 {
+    if (std::filesystem::exists("rdb.dat.gz"))
+        DecompressFileStream("rdb.dat.gz", "rdb.dat");
+
     if (std::filesystem::exists("rdb.dat"))
         loadRDB("rdb.dat");
 }
@@ -37,6 +40,9 @@ void Server::loadRDB(const string& path)
 
 void Server::storeRDB(const string& path)
 {
+    if (std::filesystem::exists(path))
+        std::filesystem::remove(path);
+
     ofstream ofs(path, std::ios::out | std::ios::binary);
     if (!ofs)
         throw std::runtime_error("open rdb file failed");
@@ -51,6 +57,7 @@ awaitable<void> Server::delObjectHandler()
 {
     for (;;)
     {
+        delobj_timer.expires_after(std::chrono::seconds(60));
         co_await delobj_timer.async_wait(use_awaitable);
         for (auto& db : databases)
         {
@@ -65,7 +72,7 @@ awaitable<void> Server::delObjectHandler()
         }
 
         storeRDB("rdb_temp.dat");
-        std::filesystem::rename("rdb_temp.dat", "rdb.dat");
+        CompressFileStream("rdb_temp.dat", "rdb.dat.gz");
     }
 }
 
