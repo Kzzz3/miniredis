@@ -20,8 +20,6 @@ std::string GenerateReply(std::vector<std::string>& result)
 
 int main()
 {
-    std::thread([]() { server.start(); }).detach();
-
     sleep(1);
 
     asio::io_context io_context;

@@ -161,7 +161,7 @@ inline void StringObjectDataSerialize(ofstream& ofs, RedisObj* obj)
     }
 }
 
-inline RedisObj* StringObjectDataDeserialize(ifstream& ifs, RedisObj* obj)
+inline void StringObjectDataDeserialize(ifstream& ifs, RedisObj* obj)
 {
     struct_pack::expected<int64_t, struct_pack::err_code> expect_num;
     switch (obj->encoding)

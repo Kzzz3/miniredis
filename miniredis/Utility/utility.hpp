@@ -50,7 +50,7 @@ inline void CompressFileStream(const std::string& inputFile, const std::string& 
         throw std::runtime_error("Failed to open input file: " + inputFile);
     }
 
-    std::ofstream out(outputFile, std::ios::binary);
+    std::ofstream out(outputFile + ".tmp", std::ios::binary);
     if (!out)
     {
         throw std::runtime_error("Failed to open output file: " + outputFile);
@@ -90,6 +90,8 @@ inline void CompressFileStream(const std::string& inputFile, const std::string& 
     } while (flush != Z_FINISH);
 
     deflateEnd(&zstrm);
+
+    std::filesystem::rename(outputFile + ".tmp", outputFile);
 }
 
 inline void DecompressFileStream(const std::string& inputFile, const std::string& outputFile,
@@ -114,7 +116,7 @@ inline void DecompressFileStream(const std::string& inputFile, const std::string
     in.read(originalFileName.data(), nameLength);
 
     // Modify: Use the specified output file name
-    std::ofstream out(outputFile, std::ios::binary);
+    std::ofstream out(outputFile + ".tmp", std::ios::binary);
     if (!out)
     {
         throw std::runtime_error("open output file failed");
@@ -156,4 +158,6 @@ inline void DecompressFileStream(const std::string& inputFile, const std::string
     } while (ret != Z_STREAM_END);
 
     inflateEnd(&zstrm);
+
+    std::filesystem::rename(outputFile + ".tmp", outputFile);
 }

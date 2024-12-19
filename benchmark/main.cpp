@@ -5,11 +5,11 @@
 
 #include "RandomCommand.hpp"
 
-using asio::io_context;
-using asio::thread_pool;
 using std::cout;
 using std::endl;
 using std::thread;
+using asio::io_context;
+using asio::thread_pool;
 
 int main()
 {

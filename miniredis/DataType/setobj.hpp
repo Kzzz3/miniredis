@@ -1,11 +1,10 @@
 #pragma once
-
 #include "redisobj.h"
 #include "../DataStruct/hashtable.h"
 
-using std::make_unique;
-using std::unique_ptr;
 using std::vector;
+using std::unique_ptr;
+using std::make_unique;
 
 inline RedisObj* SetObjectCreate()
 {

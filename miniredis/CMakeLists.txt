@@ -14,8 +14,6 @@ include_directories(
 # 收集所有源文件
 file(GLOB_RECURSE SOURCES
     ${MAIN_SRC_DIR}/*.cpp
-    ${MAIN_SRC_DIR}/*.hpp
-    ${MAIN_SRC_DIR}/*.h
 )
 
 # 创建可执行文件

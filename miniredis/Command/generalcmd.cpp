@@ -1,115 +1,73 @@
 #include "command.h"
 #include "server.h"
 
-void CmdDel(shared_ptr<Connection> conn, Command& cmd)
+bool CmdDel(shared_ptr<Connection> conn, Command& cmd)
 {
     if (cmd.size() != 2)
-        return;
+        return false;
 
-    RedisDb* db = server.selectDb(cmd[1]);
-    HashTable<RedisObj*>& kvstore = *db->kvstore;
-    std::list<RedisObj*>& deadobj = *db->deadobj;
-    if (kvstore.contains(cmd[1]))
+    HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
+    std::list<RedisObj*>& deadobj = server.database.deadobj;
+    if (!kvstore.contains(cmd[1]))
     {
-        auto entry = kvstore.find(cmd[1]);
-
-        // recording the key-value pair to be deleted
-        Sds* key = entry->first;
-        RedisObj* obj = entry->second;
-
-        // delete the key-value pair
-        kvstore.erase(key);
-        Sds::destroy(key);
-
-        if(obj->refcount > 1)
-        {
-            obj->refcount--;
-            deadobj.push_back(obj);
-        }
-
-        // destroy the key and value(object)
-        switch (obj->type)
-        {
-        case ObjType::REDIS_STRING:
-            StringObjectDestroy(obj);
-            break;
-        case ObjType::REDIS_LIST:
-            ListObjectDestroy(obj);
-            break;
-        case ObjType::REDIS_HASH:
-            HashObjectDestroy(obj);
-            break;
-        case ObjType::REDIS_SET:
-            SetObjectDestroy(obj);
-            break;
-        case ObjType::REDIS_ZSET:
-            ZsetObjectDestroy(obj);
-            break;
-        default:
-            assert(false);
-        }
+        auto reply = GenerateErrorReply("nil");
+        conn->AsyncSend(std::move(reply));
+        return false;
     }
+
+    auto entry = kvstore.find(cmd[1]);
+
+    // recording the key-value pair to be deleted
+    Sds* key = entry->first;
+    RedisObj* obj = entry->second;
+
+    // delete the key-value pair
+    kvstore.erase(key);
+    Sds::destroy(key);
+
+    obj->refcount--;
+    deadobj.push_back(obj);
+    return true;
 }
 
-void CmdKeyNum(shared_ptr<Connection> conn, Command& cmd)
+bool CmdKeyNum(shared_ptr<Connection> conn, Command& cmd)
 {
     if (cmd.size() != 1)
-        return;
+        return false;
 
     int key_num = 0;
-    for (auto& db : server.databases)
+    for (auto& kvstore : server.database.kvstores)
     {
-        HashTable<RedisObj*>& kvstore = *db.kvstore;
         key_num += kvstore.size();
     }
 
-    conn->AsyncSend(GenerateReply(make_unique<ValueRef>(num2sds<int>(key_num), nullptr)));
+    auto reply = GenerateReply(make_unique<ValueRef>(num2sds<int>(key_num), nullptr));
+    conn->AsyncSend(std::move(reply));
+    return true;
 }
 
-void CmdFlushAll(shared_ptr<Connection> conn, Command& cmd)
+bool CmdFlushAll(shared_ptr<Connection> conn, Command& cmd)
 {
     if (cmd.size() != 1)
-        return;
+        return false;
 
-    for (auto& db : server.databases) // 注意这里加上引用 &
+    for (auto& kvstore : server.database.kvstores)
     {
-
-        HashTable<RedisObj*>& kvstore = *db.kvstore;
-
-        // 先收集所有需要删除的键
-        vector<Sds*> keys_to_delete;
         for (const auto& [key, value] : kvstore)
         {
-            keys_to_delete.push_back(key);
-        }
-
-        // 然后安全地删除每个键值对
-        for (auto key : keys_to_delete)
-        {
-            auto value = kvstore[key];
-            kvstore.erase(key);
-
             Sds::destroy(key);
-            switch (value->type)
+
+            value->refcount--;
+            if (value->refcount == 0)
             {
-            case ObjType::REDIS_STRING:
-                StringObjectDestroy(value);
-                break;
-            case ObjType::REDIS_LIST:
-                ListObjectDestroy(value);
-                break;
-            case ObjType::REDIS_HASH:
-                HashObjectDestroy(value);
-                break;
-            case ObjType::REDIS_SET:
-                SetObjectDestroy(value);
-                break;
-            case ObjType::REDIS_ZSET:
-                ZsetObjectDestroy(value);
-                break;
-            default:
-                assert(false);
+                server.database.destroyRedisObj(value);
+            }
+            else
+            {
+                server.database.deadobj.push_back(value);
             }
         }
+        kvstore.clear();
     }
+    return true;
 }

@@ -1,7 +1,7 @@
 #include "server.h"
 #include "command.h"
 
-std::unordered_map<std::string, std::function<void(shared_ptr<Connection> conn, Command&)>>
+std::unordered_map<std::string, std::function<bool(shared_ptr<Connection> conn, Command&)>>
     commands_map = {
         // string command
         {"set", CmdSet},
@@ -42,6 +42,15 @@ std::unordered_map<std::string, std::function<void(shared_ptr<Connection> conn, 
         {"flushall", CmdFlushAll},
 };
 
+
+std::function<bool(shared_ptr<Connection>, Command&)> GetCommandHandler(Sds* cmdtype)
+{
+    std::string command(cmdtype->buf, cmdtype->length());
+    std::transform(command.begin(), command.end(), command.begin(), ::tolower);
+
+    return commands_map.contains(command) ? commands_map[command] : nullptr;
+}
+
 unique_ptr<Sds, decltype(&Sds::destroy)> GenerateErrorReply(const char* errmsg)
 {
     Sds* reply = Sds::create("-ERR ", 5, 5);
@@ -49,14 +58,6 @@ unique_ptr<Sds, decltype(&Sds::destroy)> GenerateErrorReply(const char* errmsg)
     reply = reply->append("\r\n", 2);
 
     return {reply, &Sds::destroy};
-}
-
-std::function<void(shared_ptr<Connection>, Command&)> GetCommandHandler(Sds* cmdtype)
-{
-    std::string command(cmdtype->buf, cmdtype->length());
-    std::transform(command.begin(), command.end(), command.begin(), ::tolower);
-
-    return commands_map.contains(command) ? commands_map[command] : nullptr;
 }
 
 unique_ptr<Sds, decltype(&Sds::destroy)> GenerateReply(unique_ptr<ValueRef>& result)

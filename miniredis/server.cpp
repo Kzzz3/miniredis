@@ -1,92 +1,51 @@
 #include "server.h"
 
 Server server;
-uint32_t DATABASE_NUM = 16;
 
 Server::Server()
-    : connection_id(0), databases(DATABASE_NUM), io_context(16), exec_threadpool(1),
-      delobj_timer(io_context)
+    : io_context(16), exec_threadpool(1), aof(exec_threadpool, io_context),
+      database(exec_threadpool, io_context), signals(io_context, SIGINT, SIGTERM), connection_id(0)
 {
     if (std::filesystem::exists("rdb.dat.gz"))
+    {
+        std::cout << "decompress rdb.dat.gz..." << std::endl;
         DecompressFileStream("rdb.dat.gz", "rdb.dat");
+        std::cout << "decompress rdb.dat.gz done" << std::endl;
+    }
 
     if (std::filesystem::exists("rdb.dat"))
-        loadRDB("rdb.dat");
-}
-
-void Server::start()
-{
-    co_spawn(io_context, listenerHandler(), detached);
-    co_spawn(exec_threadpool, delObjectHandler(), detached);
+    {
+        std::cout << "loading rdb..." << std::endl;
+        database.loadRDB("rdb.dat");
+        std::cout << "loading rdb done" << std::endl;
+    }
 
     // listen for signals
-    asio::signal_set signals(io_context, SIGINT, SIGTERM);
     signals.async_wait([&](const asio::error_code&, int) { io_context.stop(); });
 
-    io_context.run();
-}
+    // listen for clients
+    co_spawn(io_context, listenerHandler(), detached);
 
-void Server::loadRDB(const string& path)
-{
-    ifstream ifs(path, std::ios::in | std::ios::binary);
-    if (!ifs)
-        throw std::runtime_error("open rdb file failed");
-
-    for (auto& db : databases)
+    for (size_t i = 0; i < IO_THREAD_NUM; i++)
     {
-        db.deserialize_from(ifs);
+        thread([&]() { io_context.run(); }).detach();
     }
 }
 
-void Server::storeRDB(const string& path)
+Server::~Server()
 {
-    if (std::filesystem::exists(path))
-        std::filesystem::remove(path);
-
-    ofstream ofs(path, std::ios::out | std::ios::binary);
-    if (!ofs)
-        throw std::runtime_error("open rdb file failed");
-
-    for (auto& db : databases)
-    {
-        db.serialize_to(ofs);
-    }
-}
-
-awaitable<void> Server::delObjectHandler()
-{
-    for (;;)
-    {
-        delobj_timer.expires_after(std::chrono::seconds(60));
-        co_await delobj_timer.async_wait(use_awaitable);
-        for (auto& db : databases)
-        {
-            std::list<RedisObj*>& deadobj = *db.deadobj;
-            for (auto& obj : deadobj)
-            {
-                if (obj->refcount == 0)
-                {
-                    delete obj;
-                }
-            }
-        }
-
-        storeRDB("rdb_temp.dat");
-        CompressFileStream("rdb_temp.dat", "rdb.dat.gz");
-    }
 }
 
 awaitable<void> Server::listenerHandler()
 {
-    auto executor = co_await this_coro::executor;
-    tcp::acceptor acceptor(executor, {tcp::v4(), 10087});
-    for (;;)
+    tcp::acceptor acceptor(io_context, {tcp::v4(), 10087});
+    while (true)
     {
         tcp::socket socket = co_await acceptor.async_accept(use_awaitable);
         shared_ptr<Connection> conn =
             std::make_shared<Connection>(connection_id++, std::move(socket));
 
-        co_spawn(executor, handleConnection(conn), detached);
+        co_spawn(io_context, handleConnection(conn), detached);
     }
 }
 
@@ -94,7 +53,7 @@ awaitable<void> Server::handleConnection(shared_ptr<Connection> conn)
 {
     conn->state = ConnectionState::CONN_STATE_CONNECTED;
 
-    for (;;)
+    while (true)
     {
         // read mutibulk len
         Command cmd = co_await readCommandFromClient(conn);
@@ -105,17 +64,25 @@ awaitable<void> Server::handleConnection(shared_ptr<Connection> conn)
         }
 
         // command process
-        std::function<void(shared_ptr<Connection> conn, Command&)> handler = CommandProcess(cmd);
+        std::function<bool(shared_ptr<Connection> conn, Command&)> handler = CommandProcess(cmd);
 
         // execute command
         if (handler)
         {
             asio::post(exec_threadpool,
-                       [conn, handler, cmd]() mutable
+                       [this, conn, handler, cmd]() mutable
                        {
-                           handler(conn, cmd);
-                           for (auto& sds : cmd)
-                               Sds::destroy(sds);
+                           bool success = handler(conn, cmd);
+                           if (AOF_ENABLED && success && Aof::isCmdNeedAof(cmd[0]))
+                           {
+                               aof.addCmdToAof(cmd);
+                           }
+                           else
+                           {
+                               for (auto& sds : cmd)
+                                   Sds::destroy(sds);
+                           }
+
                            std::cout << Allocator::current_allocated << std::endl;
                        });
         }
@@ -205,12 +172,7 @@ awaitable<Command> Server::readCommandFromClient(shared_ptr<Connection> conn)
     }
 }
 
-RedisDb* Server::selectDb(Sds* key)
-{
-    return &databases[std::hash<Sds*>{}(key) % DATABASE_NUM];
-}
-
-std::function<void(shared_ptr<Connection>, Command&)> Server::CommandProcess(Command& cmd)
+std::function<bool(shared_ptr<Connection>, Command&)> Server::CommandProcess(Command& cmd)
 {
     // check command
     if (cmd.size() == 0)

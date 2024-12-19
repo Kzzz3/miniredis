@@ -1,14 +1,13 @@
 #include "server.h"
 #include "command.h"
 
-void CmdZAdd(shared_ptr<Connection> conn, Command& cmd)
+bool CmdZAdd(shared_ptr<Connection> conn, Command& cmd)
 {
     size_t size = cmd.size();
     if (size < 4 || size % 2 != 0)
-        return;
+        return false;
 
-    RedisDb* db = server.selectDb(cmd[1]);
-    HashTable<RedisObj*>& kvstore = *db->kvstore;
+    HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
     if (!kvstore.contains(cmd[1]))
     {
         kvstore[Sds::create(cmd[1])] = ZsetObjectCreate();
@@ -17,96 +16,101 @@ void CmdZAdd(shared_ptr<Connection> conn, Command& cmd)
     auto obj = kvstore[cmd[1]];
     if (obj->type != ObjType::REDIS_ZSET)
     {
-        conn->AsyncSend(GenerateErrorReply(
-            "WRONGTYPE Operation against a key holding the wrong kind of value"));
-        return;
+        auto reply =
+            GenerateErrorReply("WRONGTYPE Operation against a key holding the wrong kind of value");
+        conn->AsyncSend(std::move(reply));
+        return false;
     }
 
     for (size_t i = 2; i < size; i += 2)
     {
         ZsetObjectAdd(obj, sds2num<double>(cmd[i]).value(), cmd[i + 1]);
     }
+    return true;
 }
 
-void CmdZRem(shared_ptr<Connection> conn, Command& cmd)
+bool CmdZRem(shared_ptr<Connection> conn, Command& cmd)
 {
     size_t size = cmd.size();
     if (size < 3)
-        return;
+        return false;
 
-    RedisDb* db = server.selectDb(cmd[1]);
-    HashTable<RedisObj*>& kvstore = *db->kvstore;
-    if (kvstore.contains(cmd[1]))
-    {
-        auto obj = kvstore[cmd[1]];
-        if (obj->type != ObjType::REDIS_ZSET)
-        {
-            conn->AsyncSend(GenerateErrorReply(
-                "WRONGTYPE Operation against a key holding the wrong kind of value"));
-            return;
-        }
-        for (size_t i = 2; i < size; i++)
-            ZsetObjectRemove(obj, cmd[i]);
-    }
-    else
+    HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
+    if (!kvstore.contains(cmd[1]))
     {
         auto reply = GenerateErrorReply("nil");
         conn->AsyncSend(std::move(reply));
+        return false;
     }
+
+    auto obj = kvstore[cmd[1]];
+    if (obj->type != ObjType::REDIS_ZSET)
+    {
+        auto reply =
+            GenerateErrorReply("WRONGTYPE Operation against a key holding the wrong kind of value");
+        conn->AsyncSend(std::move(reply));
+        return false;
+    }
+
+    for (size_t i = 2; i < size; i++)
+        ZsetObjectRemove(obj, cmd[i]);
+    return true;
 }
 
-void CmdZRange(shared_ptr<Connection> conn, Command& cmd)
+bool CmdZRange(shared_ptr<Connection> conn, Command& cmd)
 {
     size_t size = cmd.size();
     if (size != 4)
-        return;
+        return false;
 
-    RedisDb* db = server.selectDb(cmd[1]);
-    HashTable<RedisObj*>& kvstore = *db->kvstore;
-    if (kvstore.contains(cmd[1]))
-    {
-        auto obj = kvstore[cmd[1]];
-        if (obj->type != ObjType::REDIS_ZSET)
-        {
-            conn->AsyncSend(GenerateErrorReply(
-                "WRONGTYPE Operation against a key holding the wrong kind of value"));
-            return;
-        }
-        auto reply = GenerateReply(
-            ZsetObjectRange(obj, sds2num<double>(cmd[2]).value(), sds2num<double>(cmd[3]).value()));
-        conn->AsyncSend(std::move(reply));
-    }
-    else
+    HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
+    if (!kvstore.contains(cmd[1]))
     {
         auto reply = GenerateErrorReply("nil");
         conn->AsyncSend(std::move(reply));
+        return false;
     }
+
+    auto obj = kvstore[cmd[1]];
+    if (obj->type != ObjType::REDIS_ZSET)
+    {
+        auto reply =
+            GenerateErrorReply("WRONGTYPE Operation against a key holding the wrong kind of value");
+        conn->AsyncSend(std::move(reply));
+        return false;
+    }
+
+    auto reply = GenerateReply(
+        ZsetObjectRange(obj, sds2num<double>(cmd[2]).value(), sds2num<double>(cmd[3]).value()));
+    conn->AsyncSend(std::move(reply));
+    return true;
 }
 
-void CmdZRevRange(shared_ptr<Connection> conn, Command& cmd)
+bool CmdZRevRange(shared_ptr<Connection> conn, Command& cmd)
 {
     size_t size = cmd.size();
     if (size != 4)
-        return;
+        return false;
 
-    RedisDb* db = server.selectDb(cmd[1]);
-    HashTable<RedisObj*>& kvstore = *db->kvstore;
-    if (kvstore.contains(cmd[1]))
-    {
-        auto obj = kvstore[cmd[1]];
-        if (obj->type != ObjType::REDIS_ZSET)
-        {
-            conn->AsyncSend(GenerateErrorReply(
-                "WRONGTYPE Operation against a key holding the wrong kind of value"));
-            return;
-        }
-        auto reply = GenerateReply(ZsetObjectRevRange(obj, sds2num<double>(cmd[2]).value(),
-                                                      sds2num<double>(cmd[3]).value()));
-        conn->AsyncSend(std::move(reply));
-    }
-    else
+    HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
+    if (!kvstore.contains(cmd[1]))
     {
         auto reply = GenerateErrorReply("nil");
         conn->AsyncSend(std::move(reply));
+        return false;
     }
+
+    auto obj = kvstore[cmd[1]];
+    if (obj->type != ObjType::REDIS_ZSET)
+    {
+        auto reply =
+            GenerateErrorReply("WRONGTYPE Operation against a key holding the wrong kind of value");
+        conn->AsyncSend(std::move(reply));
+        return false;
+    }
+
+    auto reply = GenerateReply(
+        ZsetObjectRevRange(obj, sds2num<double>(cmd[2]).value(), sds2num<double>(cmd[3]).value()));
+    conn->AsyncSend(std::move(reply));
+    return true;
 }
