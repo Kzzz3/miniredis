@@ -68,3 +68,33 @@ public:
             Sds::destroy(val);
     }
 };
+
+inline void SetObjectDestroy(RedisObj* obj);
+inline void ListObjectDestroy(RedisObj* obj);
+inline void HashObjectDestroy(RedisObj* obj);
+inline void ZsetObjectDestroy(RedisObj* obj);
+inline void StringObjectDestroy(RedisObj* obj);
+
+inline void RedisObjDestroy(RedisObj* obj)
+{
+    switch (obj->type)
+    {
+    case ObjType::REDIS_STRING:
+        StringObjectDestroy(obj);
+        break;
+    case ObjType::REDIS_LIST:
+        ListObjectDestroy(obj);
+        break;
+    case ObjType::REDIS_HASH:
+        HashObjectDestroy(obj);
+        break;
+    case ObjType::REDIS_SET:
+        SetObjectDestroy(obj);
+        break;
+    case ObjType::REDIS_ZSET:
+        ZsetObjectDestroy(obj);
+        break;
+    default:
+        assert(false);
+    }
+}

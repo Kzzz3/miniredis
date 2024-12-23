@@ -39,8 +39,6 @@ void RandomCommand(io_context& ctxIo, atomic<bool>& stop)
     {
         string resp = ConvertToResp(args);
         asio::write(socket, asio::buffer(resp));
-        // char reply[1024];
-        // size_t len = socket.read_some(asio::buffer(reply, sizeof(reply)));
     };
 
     while (!stop)

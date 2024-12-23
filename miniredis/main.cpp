@@ -20,7 +20,7 @@ std::string GenerateReply(std::vector<std::string>& result)
 
 int main()
 {
-    sleep(1);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     asio::io_context io_context;
     asio::ip::tcp::socket socket(io_context);

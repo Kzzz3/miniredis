@@ -51,8 +51,7 @@ public:
             return;
 
         auto buffer = asio::const_buffer(str->buf, str->length());
-        socket.async_send(buffer,
-                          [sds = std::move(str)](const asio::error_code& error, size_t length) {});
+        socket.async_send(buffer, [sds = std::move(str)](const asio::error_code&, size_t) {});
     }
 
     void AsyncSend(unique_ptr<Sds, decltype(&Sds::destroy)>&& str)
@@ -62,7 +61,6 @@ public:
             return;
 
         auto buffer = asio::const_buffer(str->buf, str->length());
-        socket.async_send(buffer,
-                          [sds = std::move(str)](const asio::error_code& error, size_t length) {});
+        socket.async_send(buffer, [sds = std::move(str)](const asio::error_code&, size_t) {});
     }
 };

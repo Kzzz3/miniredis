@@ -6,7 +6,7 @@
 
 class Allocator
 {
-  public:
+public:
     // Allocate memory using std::malloc and track the allocation size
     static void* allocate(std::size_t size)
     {
@@ -139,7 +139,7 @@ class Allocator
         return current_allocated.load(std::memory_order_relaxed);
     }
 
-  public:
+public:
     static inline std::atomic<std::size_t> total_allocated{0};
     static inline std::atomic<std::size_t> current_allocated{0};
 };

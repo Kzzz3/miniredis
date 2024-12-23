@@ -8,8 +8,7 @@
 #include <exception>
 #include <filesystem>
 
-#include "db.h"
-#include "aof.h"
+#include "Database/db.h"
 #include "Command/command.h"
 #include "Utility/utility.hpp"
 #include "DataType/redisobj.h"
@@ -29,8 +28,12 @@ using asio::thread_pool;
 using asio::use_awaitable;
 namespace this_coro = asio::this_coro;
 
-constexpr bool AOF_ENABLED = false;
-constexpr bool RDB_ENABLED = true;
+extern bool AOF_ENABLED;
+extern bool RDB_ENABLED;
+extern size_t DATABASE_NUM;
+extern size_t RDB_TIMER_INTERVAL;
+extern size_t AOF_TIMER_INTERVAL;
+extern size_t DEL_TIMER_INTERVAL;
 
 constexpr size_t IO_THREAD_NUM = 2;
 constexpr size_t EXEC_THREAD_NUM = 1;
@@ -41,7 +44,6 @@ public:
     asio::io_context io_context; // io_context
     thread_pool exec_threadpool; // execute thread
 
-    Aof aof;          // AOF
     RedisDb database; // database and RDB
 
     signal_set signals;             // signal set

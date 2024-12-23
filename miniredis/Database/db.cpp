@@ -1,17 +1,22 @@
 #include "db.h"
+#include "server.h"
 
-uint32_t DATABASE_NUM = 16;
-
-RedisDb::RedisDb(thread_pool& work_executor, io_context& io_context)
-    : rdb_timer(io_context), delobj_timer(io_context)
+RedisDb::RedisDb(asio::thread_pool& work_executor, asio::io_context& io_context)
+    : work_executor(work_executor), io_context(io_context), rdb_timer(io_context),
+      delobj_timer(io_context), aof(work_executor, io_context)
 {
     for (int i = 0; i < DATABASE_NUM; ++i)
     {
         kvstores.emplace_back();
         expired_kvstores.emplace_back();
     }
-    co_spawn(work_executor, rdbTimerHandler(), detached);
+
+    // RDB and AOF cannot be enabled at the same time in this version
+    assert(!RDB_ENABLED || !AOF_ENABLED);
+    loadPersistedData();
+
     co_spawn(work_executor, delObjectHandler(), detached);
+    startDataPersistence();
 }
 
 RedisDb::~RedisDb()
@@ -26,7 +31,7 @@ RedisDb::~RedisDb()
 
             value->refcount--;
             if (value->refcount == 0)
-                destroyRedisObj(value);
+                RedisObjDestroy(value);
             else
                 deadobj.push_back(value);
         }
@@ -59,7 +64,7 @@ awaitable<void> RedisDb::delObjectHandler()
         {
             if (obj->refcount == 0)
             {
-                destroyRedisObj(obj);
+                RedisObjDestroy(obj);
                 deadobj.remove(obj);
             }
         }
@@ -74,6 +79,78 @@ HashTable<RedisObj*>& RedisDb::getKVStore(Sds* key)
 HashTable<RedisObj*>& RedisDb::getExpiredKVStore(Sds* key)
 {
     return expired_kvstores[std::hash<Sds*>{}(key) % DATABASE_NUM];
+}
+
+void RedisDb::loadPersistedData()
+{
+    if (RDB_ENABLED)
+    {
+        if (std::filesystem::exists("rdb.dat.gz"))
+        {
+            std::cout << "decompress rdb.dat.gz..." << std::endl;
+            DecompressFileStream("rdb.dat.gz", "rdb.dat");
+            std::cout << "decompress rdb.dat.gz done" << std::endl;
+        }
+
+        if (std::filesystem::exists("rdb.dat"))
+        {
+            std::cout << "loading rdb..." << std::endl;
+            loadRDB("rdb.dat");
+            std::cout << "loading rdb done" << std::endl;
+        }
+    }
+
+    if (AOF_ENABLED)
+    {
+        if (std::filesystem::exists("aof.dat.gz"))
+        {
+            std::cout << "decompress aof.dat.gz..." << std::endl;
+            DecompressFileStream("aof.dat.gz", "aof.dat");
+            std::cout << "decompress aof.dat.gz done" << std::endl;
+        }
+
+        if (std::filesystem::exists("aof.dat"))
+        {
+            std::cout << "loading aof..." << std::endl;
+            aof.loadAOF("aof.dat");
+            std::cout << "loading aof done" << std::endl;
+        }
+
+        asio::post(work_executor,
+                   [this]()
+                   {
+                       shared_ptr<Connection> temp_conn =
+                           make_shared<Connection>(-1, tcp::socket(io_context));
+                       temp_conn->Close();
+
+                       for (auto& cmd : aof.aof_cmds)
+                       {
+                           GetCommandHandler(cmd[0])(temp_conn, cmd);
+                       }
+
+                       for (auto& cmd : aof.aof_cmds)
+                       {
+                           for (auto& sds : cmd)
+                           {
+                               Sds::destroy(sds);
+                           }
+                       }
+                       aof.aof_cmds.clear();
+                   });
+    }
+}
+
+void RedisDb::startDataPersistence()
+{
+    if (RDB_ENABLED)
+        startRdb();
+    if (AOF_ENABLED)
+        aof.startAof();
+}
+
+void RedisDb::startRdb()
+{
+    co_spawn(work_executor, rdbTimerHandler(), detached);
 }
 
 void RedisDb::loadRDB(const string& path)
@@ -100,30 +177,6 @@ void RedisDb::storeRDB(const string& path)
     for (auto& kvstore : kvstores)
     {
         HashTable<RedisObj*>::serialize_to(ofs, &kvstore, &valueSerializeFunc);
-    }
-}
-
-void RedisDb::destroyRedisObj(RedisObj* obj)
-{
-    switch (obj->type)
-    {
-    case ObjType::REDIS_STRING:
-        StringObjectDestroy(obj);
-        break;
-    case ObjType::REDIS_LIST:
-        ListObjectDestroy(obj);
-        break;
-    case ObjType::REDIS_HASH:
-        HashObjectDestroy(obj);
-        break;
-    case ObjType::REDIS_SET:
-        SetObjectDestroy(obj);
-        break;
-    case ObjType::REDIS_ZSET:
-        ZsetObjectDestroy(obj);
-        break;
-    default:
-        assert(false);
     }
 }
 

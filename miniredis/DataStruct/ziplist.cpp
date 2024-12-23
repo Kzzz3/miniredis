@@ -10,7 +10,10 @@ ZipList* ZipList::create()
     return zl;
 }
 
-void ZipList::destroy(ZipList* zl) { Allocator::destroy_with_extra<ZipList>(zl, zl->total_bytes); }
+void ZipList::destroy(ZipList* zl)
+{
+    Allocator::destroy_with_extra<ZipList>(zl, zl->total_bytes);
+}
 
 ZipList* ZipList::pop_back()
 {
@@ -88,7 +91,10 @@ ZipList* ZipList::push_back(uint8_t* str, size_t len)
     return insert(buf + total_bytes, str, len);
 }
 
-ZipList* ZipList::push_front(uint8_t* str, size_t len) { return insert(buf, str, len); }
+ZipList* ZipList::push_front(uint8_t* str, size_t len)
+{
+    return insert(buf, str, len);
+}
 
 ZipList* ZipList::insert(uint8_t* p, uint8_t* str, size_t len)
 {

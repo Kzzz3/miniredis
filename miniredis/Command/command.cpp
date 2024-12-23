@@ -42,12 +42,9 @@ std::unordered_map<std::string, std::function<bool(shared_ptr<Connection> conn, 
         {"flushall", CmdFlushAll},
 };
 
-
 std::function<bool(shared_ptr<Connection>, Command&)> GetCommandHandler(Sds* cmdtype)
 {
     std::string command(cmdtype->buf, cmdtype->length());
-    std::transform(command.begin(), command.end(), command.begin(), ::tolower);
-
     return commands_map.contains(command) ? commands_map[command] : nullptr;
 }
 

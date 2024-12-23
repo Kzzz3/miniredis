@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include <limits>
 #include <memory>
 #include <cassert>
@@ -19,21 +19,21 @@ constexpr uint32_t INTSET_ENC_INT64 = sizeof(int64_t);
 class IntSet
 {
 public:
-	uint32_t encoding;
-	uint32_t length;
-	byte content[];
+    uint32_t encoding;
+    uint32_t length;
+    byte content[];
 
 public:
-	int64_t get(uint32_t index);
-	uint32_t search(int64_t value);
+    int64_t get(uint32_t index);
+    uint32_t search(int64_t value);
 
 public:
-	static IntSet* create();
-	static void destroy(IntSet* is);
+    static IntSet* create();
+    static void destroy(IntSet* is);
 
-	bool contains(int64_t value);
-	IntSet* insert(int64_t value);
-	IntSet* remove(int64_t value);
+    bool contains(int64_t value);
+    IntSet* insert(int64_t value);
+    IntSet* remove(int64_t value);
 };
 
 IntSet* upgrade(IntSet* is);

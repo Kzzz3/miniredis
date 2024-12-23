@@ -3,7 +3,8 @@
 void Sds::destroy(Sds* s)
 {
     access_sdshdr(s,
-                  [](auto psdshdr) -> void {
+                  [](auto psdshdr) -> void
+                  {
                       Allocator::destroy_with_extra<remove_pointer_t<decltype(psdshdr)>>(
                           psdshdr, psdshdr->alloc);
                   });
@@ -206,4 +207,37 @@ Sds* Sds::append(const char* str, size_t len)
                       psdshdr->buf[psdshdr->len] = '\0';
                   });
     return ret;
+}
+
+int Sds::strcmp(Sds* str)
+{
+    return Sds::strcmp(str->buf, str->length());
+}
+
+int Sds::strcmp(const char* str)
+{
+    return Sds::strcmp(str, strlen(str));
+}
+
+int Sds::strcmp(const char* str, size_t len)
+{
+    return string_view(buf, length()).compare(string_view(str, len));
+}
+
+void Sds::convertToLower()
+{
+    int len = length();
+    for (int i = 0; i < len; i++)
+    {
+        buf[i] = tolower(buf[i]);
+    }
+}
+
+void Sds::convertToUpper()
+{
+    int len = length();
+    for (int i = 0; i < len; i++)
+    {
+        buf[i] = toupper(buf[i]);
+    }
 }

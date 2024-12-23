@@ -2,9 +2,12 @@
 #include <asio.hpp>
 
 #include <list>
+#include <memory>
 #include <vector>
+#include <cassert>
 #include <optional>
 
+#include "aof.h"
 #include "DataType/redisobj.h"
 #include "DataType/setobj.hpp"
 #include "DataType/listobj.hpp"
@@ -16,41 +19,53 @@
 using std::list;
 using std::vector;
 using std::optional;
+using std::shared_ptr;
+using std::make_shared;
 using asio::detached;
 using asio::co_spawn;
 using asio::awaitable;
-using asio::io_context;
-using asio::thread_pool;
 using asio::steady_timer;
 using asio::use_awaitable;
 
-extern uint32_t DATABASE_NUM;
-constexpr uint64_t RDB_TIMER_INTERVAL = 60;
-constexpr uint64_t DEL_TIMER_INTERVAL = 60;
+class Server;
+
+extern Server server;
+extern bool RDB_ENABLED;
+extern bool AOF_ENABLED;
+extern size_t DATABASE_NUM;
+extern size_t RDB_TIMER_INTERVAL;
+extern size_t DEL_TIMER_INTERVAL;
 
 class RedisDb
 {
 public:
-    RedisDb(thread_pool& work_executor, io_context& io_context);
+    RedisDb(asio::thread_pool& work_executor, asio::io_context& io_context);
     ~RedisDb();
 
+    // timer handler
     awaitable<void> rdbTimerHandler();
     awaitable<void> delObjectHandler();
 
+    // db operation
+    void loadPersistedData();
+    void startDataPersistence();
     HashTable<RedisObj*>& getKVStore(Sds* key);
     HashTable<RedisObj*>& getExpiredKVStore(Sds* key);
 
-    void destroyRedisObj(RedisObj* obj);
-
     // rdb
+    void startRdb();
     void loadRDB(const string& path);
     void storeRDB(const string& path);
-    void serialize_to(ofstream& ofs);
-    void deserialize_from(ifstream& ifs);
     static RedisObj* valueDeserializeFunc(ifstream& ifs);
     static void valueSerializeFunc(ofstream& ofs, RedisObj* obj);
 
 public:
+    asio::io_context& io_context;
+    asio::thread_pool& work_executor;
+
+    // aof
+    Aof aof;
+
     // data
     list<RedisObj*> deadobj;
     vector<HashTable<RedisObj*>> kvstores;

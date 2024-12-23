@@ -1,25 +1,18 @@
 #include "server.h"
 
+bool RDB_ENABLED = false;
+bool AOF_ENABLED = false;
+size_t DATABASE_NUM = 16;
+size_t RDB_TIMER_INTERVAL = 60;
+size_t AOF_TIMER_INTERVAL = 60;
+size_t DEL_TIMER_INTERVAL = 60;
+
 Server server;
 
 Server::Server()
-    : io_context(16), exec_threadpool(1), aof(exec_threadpool, io_context),
-      database(exec_threadpool, io_context), signals(io_context, SIGINT, SIGTERM), connection_id(0)
+    : io_context(16), exec_threadpool(1), database(exec_threadpool, io_context),
+      signals(io_context, SIGINT, SIGTERM), connection_id(0)
 {
-    if (std::filesystem::exists("rdb.dat.gz"))
-    {
-        std::cout << "decompress rdb.dat.gz..." << std::endl;
-        DecompressFileStream("rdb.dat.gz", "rdb.dat");
-        std::cout << "decompress rdb.dat.gz done" << std::endl;
-    }
-
-    if (std::filesystem::exists("rdb.dat"))
-    {
-        std::cout << "loading rdb..." << std::endl;
-        database.loadRDB("rdb.dat");
-        std::cout << "loading rdb done" << std::endl;
-    }
-
     // listen for signals
     signals.async_wait([&](const asio::error_code&, int) { io_context.stop(); });
 
@@ -62,6 +55,7 @@ awaitable<void> Server::handleConnection(shared_ptr<Connection> conn)
             conn->Close();
             co_return;
         }
+        cmd[0]->convertToLower();
 
         // command process
         std::function<bool(shared_ptr<Connection> conn, Command&)> handler = CommandProcess(cmd);
@@ -75,14 +69,13 @@ awaitable<void> Server::handleConnection(shared_ptr<Connection> conn)
                            bool success = handler(conn, cmd);
                            if (AOF_ENABLED && success && Aof::isCmdNeedAof(cmd[0]))
                            {
-                               aof.addCmdToAof(cmd);
+                               database.aof.addCmdToAof(cmd);
                            }
                            else
                            {
                                for (auto& sds : cmd)
                                    Sds::destroy(sds);
                            }
-
                            std::cout << Allocator::current_allocated << std::endl;
                        });
         }

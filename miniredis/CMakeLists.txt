@@ -4,11 +4,12 @@ set(MAIN_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 # 包含子目录头文件
 include_directories(
     ${MAIN_SRC_DIR}
-    ${MAIN_SRC_DIR}/Command
     ${MAIN_SRC_DIR}/DataStruct
-    ${MAIN_SRC_DIR}/DataType
     ${MAIN_SRC_DIR}/Networking
+    ${MAIN_SRC_DIR}/Database
+    ${MAIN_SRC_DIR}/DataType
     ${MAIN_SRC_DIR}/Utility
+    ${MAIN_SRC_DIR}/Command
 )
 
 # 收集所有源文件

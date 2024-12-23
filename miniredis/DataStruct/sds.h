@@ -7,6 +7,7 @@
 #include <concepts>
 #include <optional>
 #include <stdexcept>
+#include <algorithm>
 #include <string_view>
 
 #include <ylt/struct_pack.hpp>
@@ -78,6 +79,13 @@ public:
 
     Sds* append(Sds* str);
     Sds* append(const char* str, size_t len);
+
+    int strcmp(Sds* str);
+    int strcmp(const char* str);
+    int strcmp(const char* str, size_t len);
+
+    void convertToLower();
+    void convertToUpper();
 };
 #pragma pack(pop)
 
