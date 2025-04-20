@@ -70,8 +70,8 @@ inline RedisObj* StringObjectUpdate(RedisObj* obj, Sds* str)
 
     // Case 2: Switch to EMBSTR if applicable
     int len = str->length();
-    if (len <= EMBSTR_MAX_LENGTH && obj->encoding == ObjEncoding::REDIS_ENCODING_INT ||
-        obj->encoding == ObjEncoding::REDIS_ENCODING_EMBSTR)
+    if (len <= EMBSTR_MAX_LENGTH && (obj->encoding == ObjEncoding::REDIS_ENCODING_INT ||
+                                     obj->encoding == ObjEncoding::REDIS_ENCODING_EMBSTR))
     {
         if (obj->encoding == ObjEncoding::REDIS_ENCODING_INT)
         {

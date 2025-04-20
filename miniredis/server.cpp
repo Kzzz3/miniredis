@@ -11,10 +11,28 @@ Server server;
 
 Server::Server()
     : io_context(16), exec_threadpool(1), database(exec_threadpool, io_context),
-      signals(io_context, SIGINT, SIGTERM), connection_id(0)
+      signals(io_context, SIGINT, SIGTERM), connection_id(0),
+      processed_print_timer(io_context, std::chrono::seconds(1)), total_commands_received(0),
+      total_commands_processed(0)
 {
     // listen for signals
     signals.async_wait([&](const asio::error_code&, int) { io_context.stop(); });
+
+    // print total commands processed every second
+    static auto printProcessed = [this]() -> awaitable<void>
+    {
+        while (true)
+        {
+            processed_print_timer.expires_after(std::chrono::seconds(1));
+            co_await processed_print_timer.async_wait(use_awaitable);
+            // printf("total commands received: %lu\n", total_commands_received.load());
+            // printf("total commands processed: %lu\n", total_commands_processed.load());
+            // printf("current allocated: %lu\n", Allocator::current_allocated);
+            total_commands_received = 0;
+            total_commands_processed = 0;
+        }
+    };
+    co_spawn(io_context, printProcessed(), detached);
 
     // listen for clients
     co_spawn(io_context, listenerHandler(), detached);
@@ -63,6 +81,7 @@ awaitable<void> Server::handleConnection(shared_ptr<Connection> conn)
         // execute command
         if (handler)
         {
+            total_commands_received++;
             asio::post(exec_threadpool,
                        [this, conn, handler, cmd]() mutable
                        {
@@ -76,7 +95,8 @@ awaitable<void> Server::handleConnection(shared_ptr<Connection> conn)
                                for (auto& sds : cmd)
                                    Sds::destroy(sds);
                            }
-                           std::cout << Allocator::current_allocated << std::endl;
+                           total_commands_processed++;
+                           //    std::cout << Allocator::current_allocated << std::endl;
                        });
         }
         else
@@ -90,9 +110,21 @@ awaitable<void> Server::handleConnection(shared_ptr<Connection> conn)
 
 awaitable<Command> Server::readCommandFromClient(shared_ptr<Connection> conn)
 {
-
-    size_t n = co_await async_read_until(conn->socket, *conn->read_buffer, "\r\n", use_awaitable);
-    const char* data = asio::buffer_cast<const char*>(conn->read_buffer->data());
+    size_t n = 0;
+    const char* data = nullptr;
+    while (true)
+    {
+        n = co_await async_read_until(conn->socket, *conn->read_buffer, "\r\n", use_awaitable);
+        data = asio::buffer_cast<const char*>(conn->read_buffer->data());
+        if (strncmp((char*)data, "PING\r\n", n) == 0)
+        {
+            conn->read_buffer->consume(n);
+            conn->socket.async_send(asio::buffer("+PONG\r\n", 7),
+                                    [](const asio::error_code&, size_t) {});
+        }
+        else
+            break;
+    }
     if (data[0] != '*')
     {
         conn->read_buffer->consume(n);

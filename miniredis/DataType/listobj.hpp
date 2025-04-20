@@ -21,16 +21,18 @@ inline RedisObj* ListObjectCreate()
     return obj;
 }
 
-inline void ListObjectLPush(RedisObj* obj, Sds* value)
+inline size_t ListObjectLPush(RedisObj* obj, Sds* value)
 {
     LinkedList& list = *reinterpret_cast<LinkedList*>(obj->data.ptr);
     list.push_front(Sds::create(value));
+    return list.size();
 }
 
-inline void ListObjectRPush(RedisObj* obj, Sds* value)
+inline size_t ListObjectRPush(RedisObj* obj, Sds* value)
 {
     LinkedList& list = *reinterpret_cast<LinkedList*>(obj->data.ptr);
     list.push_back(Sds::create(value));
+    return list.size();
 }
 
 inline unique_ptr<ValueRef> ListObjectLPop(RedisObj* obj)

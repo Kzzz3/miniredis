@@ -29,6 +29,7 @@ using CommandMap =
 // string command
 bool CmdSet(shared_ptr<Connection> conn, Command& cmd);
 bool CmdGet(shared_ptr<Connection> conn, Command& cmd);
+bool CmdMset(shared_ptr<Connection> conn, Command& cmd);
 bool CmdIncr(shared_ptr<Connection> conn, Command& cmd);
 bool CmdDecr(shared_ptr<Connection> conn, Command& cmd);
 bool CmdAppend(shared_ptr<Connection> conn, Command& cmd);
@@ -50,6 +51,7 @@ bool CmdLRange(shared_ptr<Connection> conn, Command& cmd);
 // set command
 bool CmdSAdd(shared_ptr<Connection> conn, Command& cmd);
 bool CmdSRem(shared_ptr<Connection> conn, Command& cmd);
+bool CmdSPop(shared_ptr<Connection> conn, Command& cmd);
 bool CmdSMembers(shared_ptr<Connection> conn, Command& cmd);
 bool CmdSisMember(shared_ptr<Connection> conn, Command& cmd);
 
@@ -62,6 +64,7 @@ bool CmdZRevRange(shared_ptr<Connection> conn, Command& cmd);
 // free command
 bool CmdDel(shared_ptr<Connection> conn, Command& cmd);
 bool CmdTTL(shared_ptr<Connection> conn, Command& cmd);
+bool CmdPing(shared_ptr<Connection> conn, Command& cmd);
 bool CmdExpire(shared_ptr<Connection> conn, Command& cmd);
 bool CmdKeyNum(shared_ptr<Connection> conn, Command& cmd);
 bool CmdFlushDB(shared_ptr<Connection> conn, Command& cmd);

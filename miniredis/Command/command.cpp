@@ -6,6 +6,7 @@ std::unordered_map<std::string, std::function<bool(shared_ptr<Connection> conn, 
         // string command
         {"set", CmdSet},
         {"get", CmdGet},
+        {"mset", CmdMset},
         {"incr", CmdIncr},
         {"decr", CmdDecr},
         {"append", CmdAppend},
@@ -27,6 +28,7 @@ std::unordered_map<std::string, std::function<bool(shared_ptr<Connection> conn, 
         // set command
         {"sadd", CmdSAdd},
         {"srem", CmdSRem},
+        {"spop", CmdSPop},
         {"smembers", CmdSMembers},
         {"sismember", CmdSisMember},
 
@@ -38,6 +40,7 @@ std::unordered_map<std::string, std::function<bool(shared_ptr<Connection> conn, 
 
         // general command
         {"del", CmdDel},
+        {"ping", CmdPing},
         {"keynum", CmdKeyNum},
         {"flushall", CmdFlushAll},
 };
@@ -84,7 +87,8 @@ unique_ptr<Sds, decltype(&Sds::destroy)> GenerateReply(std::vector<unique_ptr<Va
     {
         if (vr == nullptr)
         {
-            reply = reply->append("$3\r\nnil\r\n", 10);
+            // reply = reply->append("$3\r\nnil\r\n", 10);
+            reply = reply->append("+nil\r\n", 6);
             continue;
         }
 

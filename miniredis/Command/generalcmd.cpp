@@ -30,6 +30,16 @@ bool CmdDel(shared_ptr<Connection> conn, Command& cmd)
     return true;
 }
 
+bool CmdPing(shared_ptr<Connection> conn, Command& cmd)
+{
+    if (cmd.size() != 1)
+        return false;
+
+    auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("PONG"), nullptr));
+    conn->AsyncSend(std::move(reply));
+    return true;
+}
+
 bool CmdKeyNum(shared_ptr<Connection> conn, Command& cmd)
 {
     if (cmd.size() != 1)

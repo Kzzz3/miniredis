@@ -22,10 +22,11 @@ bool CmdHSet(shared_ptr<Connection> conn, Command& cmd)
         return false;
     }
 
+    size_t successedNum = 0;
     for (size_t i = 2; i < size; i += 2)
-    {
-        HashObjectInsert(obj, cmd[i], cmd[i + 1]);
-    }
+        successedNum += HashObjectInsert(obj, cmd[i], cmd[i + 1]);
+    auto reply = GenerateReply(make_unique<ValueRef>(num2sds(successedNum), nullptr));
+    conn->AsyncSend(std::move(reply));
     return true;
 }
 

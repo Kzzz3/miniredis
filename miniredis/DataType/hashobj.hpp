@@ -21,10 +21,17 @@ inline RedisObj* HashObjectCreate()
     return obj;
 }
 
-inline void HashObjectInsert(RedisObj* obj, Sds* field, Sds* value)
+inline bool HashObjectInsert(RedisObj* obj, Sds* field, Sds* value)
 {
     HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
+    if (ht.contains(field))
+    {
+        ht[field] = Sds::create(value);
+        return false;
+    }
+
     ht[Sds::create(field)] = Sds::create(value);
+    return true;
 }
 
 inline auto HashObjectGet(RedisObj* obj, Sds* key)

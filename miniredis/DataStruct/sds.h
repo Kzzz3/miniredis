@@ -1,4 +1,5 @@
 #pragma once
+#include <format>
 #include <vector>
 #include <limits>
 #include <fstream>
@@ -139,6 +140,30 @@ template <> struct equal_to<Sds*>
     {
         return string_view(lhs->buf, const_cast<Sds*>(lhs)->length()) ==
                string_view(rhs->buf, const_cast<Sds*>(rhs)->length());
+    }
+};
+
+template <> struct formatter<Sds*>
+{
+    // 解析格式说明符（可选）
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        // 简单起见，不处理复杂格式说明符
+        return ctx.begin();
+    }
+
+    // 格式化 Person* 指针
+    auto format(const Sds* p, std::format_context& ctx) const
+    {
+        if (p == nullptr)
+        {
+            // 空指针情况
+            return std::format_to(ctx.out(), "nullptr");
+        }
+        // 格式化指向的 Person 对象
+        return std::format_to(ctx.out(), "Alloc:{}, Used:{}, content:{}", ((Sds*)p)->capacity(),
+                              ((Sds*)p)->length(),
+                              string_view(((Sds*)p)->buf, ((Sds*)p)->length()));
     }
 };
 } // namespace std

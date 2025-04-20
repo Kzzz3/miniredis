@@ -17,24 +17,41 @@ inline RedisObj* SetObjectCreate()
     return obj;
 }
 
-inline void SetObjectAdd(RedisObj* obj, Sds* member)
-{
-    HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
-    ht[Sds::create(member)] = nullptr;
-}
-
-inline void SetObjectRemove(RedisObj* obj, Sds* member)
+inline bool SetObjectAdd(RedisObj* obj, Sds* member)
 {
     HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
     if (ht.contains(member))
-    {
-        auto entry = ht.find(member);
-        Sds* entrykey = entry->first;
+        return false;
 
-        ht.erase(member);
+    ht.contains(member) ? 0 : ht[Sds::create(member)] = nullptr;
+    return true;
+}
 
-        Sds::destroy(entrykey);
-    }
+inline bool SetObjectRemove(RedisObj* obj, Sds* member)
+{
+    HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
+    if (!ht.contains(member))
+        return false;
+
+    auto entry = ht.find(member);
+    Sds* entrykey = entry->first;
+
+    ht.erase(member);
+    Sds::destroy(entrykey);
+    return true;
+}
+
+inline unique_ptr<ValueRef> SetObjectPop(RedisObj* obj)
+{
+    HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
+    if (ht.size() == 0)
+        return nullptr;
+
+    auto entry = ht.begin();
+    Sds* entrykey = entry->first;
+
+    ht.erase(entrykey);
+    return std::make_unique<ValueRef>(entrykey, nullptr);
 }
 
 inline void SetObjectDestroy(RedisObj* obj)

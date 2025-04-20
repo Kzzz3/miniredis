@@ -10,6 +10,8 @@ bool CmdSet(shared_ptr<Connection> conn, Command& cmd)
     if (!kvstore.contains(cmd[1]))
     {
         kvstore[Sds::create(cmd[1])] = StringObjectCreate(cmd[2]);
+        auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("OK"), nullptr));
+        conn->AsyncSend(std::move(reply));
         return true;
     }
 
@@ -22,7 +24,9 @@ bool CmdSet(shared_ptr<Connection> conn, Command& cmd)
         return false;
     }
 
-    obj->data.ptr = StringObjectUpdate(obj, cmd[2]);
+    kvstore[Sds::create(cmd[1])] = StringObjectUpdate(obj, cmd[2]);
+    auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("OK"), nullptr));
+    conn->AsyncSend(std::move(reply));
     return true;
 }
 
@@ -49,6 +53,35 @@ bool CmdGet(shared_ptr<Connection> conn, Command& cmd)
     }
 
     auto reply = GenerateReply(StringObjectGet(obj));
+    conn->AsyncSend(std::move(reply));
+    return true;
+}
+
+bool CmdMset(shared_ptr<Connection> conn, Command& cmd)
+{
+    if (cmd.size() < 3 || cmd.size() % 2 == 0)
+        return false;
+
+    HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
+    for (size_t i = 1; i < cmd.size(); i += 2)
+    {
+        if (!kvstore.contains(cmd[i]))
+            kvstore[Sds::create(cmd[i])] = StringObjectCreate(cmd[i + 1]);
+        else
+        {
+            if (kvstore[cmd[i]]->type != ObjType::REDIS_STRING)
+            {
+                RedisObjDestroy(kvstore[cmd[i]]);
+                kvstore[Sds::create(cmd[i])] = StringObjectCreate(cmd[i + 1]);
+            }
+            else
+            {
+                kvstore[Sds::create(cmd[i])] = StringObjectUpdate(kvstore[cmd[i]], cmd[i + 1]);
+            }
+        }
+    }
+
+    auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("OK"), nullptr));
     conn->AsyncSend(std::move(reply));
     return true;
 }

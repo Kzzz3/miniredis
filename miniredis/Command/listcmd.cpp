@@ -20,8 +20,12 @@ bool CmdLPush(shared_ptr<Connection> conn, Command& cmd)
         return false;
     }
 
+    size_t list_size = 0;
     for (size_t i = 2; i < size; i++)
-        ListObjectLPush(obj, cmd[i]);
+        list_size = ListObjectLPush(obj, cmd[i]);
+
+    auto reply = GenerateReply(make_unique<ValueRef>(num2sds(list_size), nullptr));
+    conn->AsyncSend(std::move(reply));
     return true;
 }
 
@@ -44,8 +48,12 @@ bool CmdRPush(shared_ptr<Connection> conn, Command& cmd)
         return false;
     }
 
+    size_t list_size = 0;
     for (size_t i = 2; i < size; i++)
-        ListObjectRPush(obj, cmd[i]);
+        list_size = ListObjectRPush(obj, cmd[i]);
+
+    auto reply = GenerateReply(make_unique<ValueRef>(num2sds(list_size), nullptr));
+    conn->AsyncSend(std::move(reply));
     return true;
 }
 

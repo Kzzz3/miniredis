@@ -48,6 +48,11 @@ public:
 
     signal_set signals;             // signal set
     atomic<uint64_t> connection_id; // connection id
+
+    steady_timer processed_print_timer;
+    atomic<uint64_t> total_commands_received;  // total commands received
+    atomic<uint64_t> total_commands_processed; // total commands processed
+
 public:
     Server();
     ~Server();

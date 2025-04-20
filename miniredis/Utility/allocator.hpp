@@ -2,12 +2,11 @@
 #include <atomic>
 #include <cstdlib>
 #include <iostream>
-#include <new>
 
 class Allocator
 {
 public:
-    // Allocate memory using std::malloc and track the allocation size
+    // Allocate memory using malloc and track the allocation size
     static void* allocate(std::size_t size)
     {
         if (size == 0)
@@ -15,7 +14,7 @@ public:
             return nullptr;
         }
 
-        void* ptr = std::malloc(size);
+        void* ptr = malloc(size);
         if (!ptr)
         {
             throw std::bad_alloc();
@@ -28,7 +27,7 @@ public:
         return ptr;
     }
 
-    // Deallocate memory using std::free and track the deallocation size
+    // Deallocate memory using free and track the deallocation size
     static void deallocate(void* ptr, std::size_t size)
     {
         if (!ptr)
@@ -36,7 +35,7 @@ public:
             return;
         }
 
-        std::free(ptr);
+        free(ptr);
 
         // Update statistics
         current_allocated.fetch_sub(size, std::memory_order_relaxed);
