@@ -10,6 +10,7 @@ std::unordered_map<std::string, std::function<bool(shared_ptr<Connection> conn, 
         {"incr", CmdIncr},
         {"decr", CmdDecr},
         {"append", CmdAppend},
+        {"command", CmdCommand},
 
         // hash command
         {"hset", CmdHSet},

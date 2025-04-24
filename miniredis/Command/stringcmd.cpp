@@ -9,7 +9,9 @@ bool CmdSet(shared_ptr<Connection> conn, Command& cmd)
     HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
     if (!kvstore.contains(cmd[1]))
     {
-        kvstore[Sds::create(cmd[1])] = StringObjectCreate(cmd[2]);
+        kvstore[cmd[1]] = StringObjectCreate(cmd[2]);
+        cmd[1] = nullptr;
+
         auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("OK"), nullptr));
         conn->AsyncSend(std::move(reply));
         return true;
@@ -18,13 +20,15 @@ bool CmdSet(shared_ptr<Connection> conn, Command& cmd)
     auto obj = kvstore[cmd[1]];
     if (obj->type != ObjType::REDIS_STRING)
     {
-        auto reply =
-            GenerateErrorReply("WRONGTYPE Operation against a key holding the wrong kind of value");
-        conn->AsyncSend(std::move(reply));
-        return false;
+        RedisObjDestroy(obj);
+        kvstore[cmd[1]] = StringObjectCreate(cmd[2]);
+    }
+    else
+    {
+        kvstore[cmd[1]] = StringObjectUpdate(obj, cmd[2]);
     }
 
-    kvstore[Sds::create(cmd[1])] = StringObjectUpdate(obj, cmd[2]);
+    kvstore[cmd[1]] = StringObjectUpdate(obj, cmd[2]);
     auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("OK"), nullptr));
     conn->AsyncSend(std::move(reply));
     return true;
@@ -38,9 +42,9 @@ bool CmdGet(shared_ptr<Connection> conn, Command& cmd)
     HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
     if (!kvstore.contains(cmd[1]))
     {
-        auto reply = GenerateErrorReply("nil");
+        auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("nil"), nullptr));
         conn->AsyncSend(std::move(reply));
-        return false;
+        return true;
     }
 
     auto obj = kvstore[cmd[1]];
@@ -66,18 +70,21 @@ bool CmdMset(shared_ptr<Connection> conn, Command& cmd)
     for (size_t i = 1; i < cmd.size(); i += 2)
     {
         if (!kvstore.contains(cmd[i]))
-            kvstore[Sds::create(cmd[i])] = StringObjectCreate(cmd[i + 1]);
+        {
+            kvstore[cmd[i]] = StringObjectCreate(cmd[i + 1]);
+            cmd[i] = nullptr;
+            continue;
+        }
+
+        auto obj = kvstore[cmd[i]];
+        if (obj->type != ObjType::REDIS_STRING)
+        {
+            RedisObjDestroy(obj);
+            kvstore[cmd[i]] = StringObjectCreate(cmd[i + 1]);
+        }
         else
         {
-            if (kvstore[cmd[i]]->type != ObjType::REDIS_STRING)
-            {
-                RedisObjDestroy(kvstore[cmd[i]]);
-                kvstore[Sds::create(cmd[i])] = StringObjectCreate(cmd[i + 1]);
-            }
-            else
-            {
-                kvstore[Sds::create(cmd[i])] = StringObjectUpdate(kvstore[cmd[i]], cmd[i + 1]);
-            }
+            kvstore[cmd[i]] = StringObjectUpdate(obj, cmd[i + 1]);
         }
     }
 
@@ -94,7 +101,7 @@ bool CmdIncr(shared_ptr<Connection> conn, Command& cmd)
     HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
     if (!kvstore.contains(cmd[1]))
     {
-        auto reply = GenerateErrorReply("nil");
+        auto reply = GenerateErrorReply("key doesn't exist");
         conn->AsyncSend(std::move(reply));
         return false;
     }
@@ -127,7 +134,7 @@ bool CmdDecr(shared_ptr<Connection> conn, Command& cmd)
     HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
     if (!kvstore.contains(cmd[1]))
     {
-        auto reply = GenerateErrorReply("nil");
+        auto reply = GenerateErrorReply("key doesn't exist");
         conn->AsyncSend(std::move(reply));
         return false;
     }
@@ -160,7 +167,7 @@ bool CmdAppend(shared_ptr<Connection> conn, Command& cmd)
     HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
     if (!kvstore.contains(cmd[1]))
     {
-        auto reply = GenerateErrorReply("nil");
+        auto reply = GenerateErrorReply("key doesn't exist");
         conn->AsyncSend(std::move(reply));
         return false;
     }
@@ -184,5 +191,15 @@ bool CmdAppend(shared_ptr<Connection> conn, Command& cmd)
 
     auto value = reinterpret_cast<Sds*>(obj->data.ptr);
     obj->data.ptr = value->append(cmd[2]);
+    return true;
+}
+
+bool CmdCommand(shared_ptr<Connection> conn, Command& cmd)
+{
+    if (cmd.size() != 1)
+        return false;
+
+    auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("OK"), nullptr));
+    conn->AsyncSend(std::move(reply));
     return true;
 }

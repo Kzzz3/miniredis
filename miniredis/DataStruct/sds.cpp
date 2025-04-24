@@ -2,6 +2,8 @@
 
 void Sds::destroy(Sds* s)
 {
+    if (s == nullptr)
+        return;
     access_sdshdr(s,
                   [](auto psdshdr) -> void
                   {

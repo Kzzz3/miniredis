@@ -1,12 +1,11 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.31)
 project(miniredis VERSION 1.0 LANGUAGES CXX)
 
 # 设置 C++ 标准
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2  -Wall")
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O2  -Wall")
-
 
 # 设置 vcpkg 工具链文件路径
 set(CMAKE_PREFIX_PATH "/home/kzzz3/vcpkg/installed/x64-linux")

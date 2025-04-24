@@ -10,7 +10,7 @@ size_t DEL_TIMER_INTERVAL = 60;
 Server server;
 
 Server::Server()
-    : io_context(1), exec_threadpool(1), database(exec_threadpool, io_context),
+    : io_context(8), exec_threadpool(1), database(exec_threadpool, io_context),
       signals(io_context, SIGINT, SIGTERM), connection_id(0),
       processed_print_timer(io_context, std::chrono::seconds(1)), total_commands_received(0),
       total_commands_processed(0)
@@ -27,7 +27,7 @@ Server::Server()
             co_await processed_print_timer.async_wait(use_awaitable);
             // printf("total commands received: %lu\n", total_commands_received.load());
             // printf("total commands processed: %lu\n", total_commands_processed.load());
-            // printf("current allocated: %lu\n", Allocator::current_allocated);
+            // printf("current allocated: %lu\n", Allocator::current_allocated.load());
             total_commands_received = 0;
             total_commands_processed = 0;
         }
@@ -66,13 +66,15 @@ awaitable<void> Server::handleConnection(shared_ptr<Connection> conn)
 
     while (true)
     {
-        // read mutibulk len
-        Command cmd = co_await readCommandFromClient(conn);
-        if (cmd.empty())
+        // read command
+        auto result = co_await readCommandFromClient(conn);
+        if (!result)
         {
             conn->Close();
             co_return;
         }
+
+        Command cmd = result.value();
         cmd[0]->convertToLower();
 
         // command process
@@ -101,100 +103,96 @@ awaitable<void> Server::handleConnection(shared_ptr<Connection> conn)
         }
         else
         {
-            // err
             for (auto& sds : cmd)
                 Sds::destroy(sds);
         }
     }
 }
 
-awaitable<Command> Server::readCommandFromClient(shared_ptr<Connection> conn)
+awaitable<std::expected<Command, std::error_code>> Server::readCommandFromClient(
+    shared_ptr<Connection> conn)
 {
     size_t n = 0;
     const char* data = nullptr;
-    while (true)
+
+    n = co_await async_read_until(conn->socket, conn->read_buffer, "\r\n", use_awaitable);
+    data = asio::buffer_cast<const char*>(conn->read_buffer.data());
+
+    // Handle PING
+    if (strncmp((char*)data, "PING\r\n", n) == 0)
     {
-        n = co_await async_read_until(conn->socket, *conn->read_buffer, "\r\n", use_awaitable);
-        data = asio::buffer_cast<const char*>(conn->read_buffer->data());
-        if (strncmp((char*)data, "PING\r\n", n) == 0)
-        {
-            conn->read_buffer->consume(n);
-            conn->socket.async_send(asio::buffer("+PONG\r\n", 7),
-                                    [](const asio::error_code&, size_t) {});
-        }
-        else
-            break;
-    }
-    if (data[0] != '*')
-    {
-        conn->read_buffer->consume(n);
-        throw asio::system_error(asio::error::invalid_argument, "invalid command");
+        conn->read_buffer.consume(n);
+        co_await asio::async_write(conn->socket, asio::buffer("+PONG\r\n", 7), use_awaitable);
+        co_return co_await readCommandFromClient(conn);
     }
 
-    size_t bulkSize = std::stoi(std::string(data + 1, n - 3), nullptr, 10);
-    if (bulkSize <= 0)
+    // Check for array prefix
+    if (data[0] != '*')
     {
-        // err
-        conn->read_buffer->consume(n);
-        throw asio::system_error(asio::error::invalid_argument, "invalid command");
+        conn->read_buffer.consume(n);
+        co_return std::unexpected(std::make_error_code(std::errc::invalid_argument));
     }
-    conn->read_buffer->consume(n);
+
+    // Parse array size
+    auto num = str2num<size_t>(data + 1, n - 3);
+    if (!num.has_value() || num.value() <= 0)
+    {
+        conn->read_buffer.consume(n);
+        co_return std::unexpected(std::make_error_code(std::errc::invalid_argument));
+    }
+    size_t bulkSize = num.value();
+    conn->read_buffer.consume(n);
 
     Command cmd;
     cmd.reserve(bulkSize);
-
-    try
+    for (size_t i = 0; i < bulkSize; i++)
     {
+        n = co_await async_read_until(conn->socket, conn->read_buffer, "\r\n", use_awaitable);
+        data = asio::buffer_cast<const char*>(conn->read_buffer.data());
+
         int64_t bulkLen = 0;
-        for (size_t i = 0; i < bulkSize; i++)
+        optional<int64_t> num;
+        switch (data[0])
         {
-            n = co_await async_read_until(conn->socket, *conn->read_buffer, "\r\n", use_awaitable);
+        case '+':
+            cmd.emplace_back(Sds::create(data + 1, n - 3, n - 3));
+            conn->read_buffer.consume(n);
+            break;
 
-            optional<int64_t> num;
-            data = asio::buffer_cast<const char*>(conn->read_buffer->data());
-            switch (data[0])
+        case ':':
+            cmd.emplace_back(Sds::create(data + 1, n - 3, n - 3));
+            conn->read_buffer.consume(n);
+            break;
+
+        case '$':
+            num = str2num<int64_t>(data + 1, n - 3);
+            if (!num.has_value() || num.value() <= 0)
             {
-            case '+':
-                cmd.emplace_back(Sds::create(data + 1, n - 3, n - 3));
-                conn->read_buffer->consume(n);
-                break;
-            case ':':
-                cmd.emplace_back(Sds::create(data + 1, n - 3, n - 3));
-                conn->read_buffer->consume(n);
-                break;
-            case '$':
-                num = str2num<int64_t>(data + 1, n - 3);
-                if (!num.has_value() || num.value() <= 0)
-                {
-                    throw asio::system_error(asio::error::invalid_argument, "invalid command");
-                }
-
-                bulkLen = num.value();
-                conn->read_buffer->consume(n);
-                if (conn->read_buffer->in_avail() < bulkLen + 2)
-                {
-                    n = co_await async_read(
-                        conn->socket, *conn->read_buffer,
-                        asio::transfer_exactly(bulkLen + 2 - conn->read_buffer->in_avail()),
-                        use_awaitable);
-                }
-
-                data = asio::buffer_cast<const char*>(conn->read_buffer->data());
-                cmd.emplace_back(Sds::create(data, bulkLen, bulkLen));
-                conn->read_buffer->consume(bulkLen + 2);
-                break;
-            default:
-                throw asio::system_error(asio::error::invalid_argument, "invalid command");
+                conn->read_buffer.consume(n);
+                co_return std::unexpected(std::make_error_code(std::errc::invalid_argument));
             }
+
+            bulkLen = num.value();
+            conn->read_buffer.consume(n);
+            while (conn->read_buffer.in_avail() < bulkLen + 2)
+            {
+                n = co_await async_read(
+                    conn->socket, conn->read_buffer,
+                    asio::transfer_exactly(bulkLen + 2 - conn->read_buffer.in_avail()),
+                    use_awaitable);
+            }
+
+            data = asio::buffer_cast<const char*>(conn->read_buffer.data());
+            cmd.emplace_back(Sds::create(data, bulkLen, bulkLen));
+            conn->read_buffer.consume(bulkLen + 2);
+            break;
+
+        default:
+            conn->read_buffer.consume(n);
+            co_return std::unexpected(std::make_error_code(std::errc::invalid_argument));
         }
-        co_return cmd;
     }
-    catch (...)
-    {
-        for (auto& sds : cmd)
-            Sds::destroy(sds);
-        co_return Command();
-    }
+    co_return cmd;
 }
 
 std::function<bool(shared_ptr<Connection>, Command&)> Server::CommandProcess(Command& cmd)

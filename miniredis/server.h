@@ -4,6 +4,7 @@
 
 #include <thread>
 #include <vector>
+#include <expected>
 #include <iostream>
 #include <exception>
 #include <filesystem>
@@ -59,7 +60,9 @@ public:
 
     awaitable<void> listenerHandler();
     awaitable<void> handleConnection(shared_ptr<Connection> conn);
-    awaitable<Command> readCommandFromClient(shared_ptr<Connection> conn);
+    awaitable<std::expected<Command, std::error_code>> readCommandFromClient(
+        shared_ptr<Connection> conn);
+
     std::function<bool(shared_ptr<Connection>, Command&)> CommandProcess(Command& cmd);
 };
 extern Server server;

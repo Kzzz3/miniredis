@@ -27,12 +27,12 @@ public:
     mutex close_mutex;
     tcp::socket socket;
     ConnectionState state;
-    unique_ptr<streambuf> read_buffer;
+    streambuf read_buffer;
 
 public:
     Connection(uint64_t id, tcp::socket&& socket)
         : id(id), socket(std::move(socket)), state(ConnectionState::CONN_STATE_NONE),
-          read_buffer(std::make_unique<streambuf>(BUFFER_MAX_SIZE))
+          read_buffer(BUFFER_MAX_SIZE)
     {
     }
 

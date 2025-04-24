@@ -15,7 +15,7 @@ using std::ofstream;
 using std::optional;
 using std::unique_ptr;
 
-inline RedisObj* StringObjectCreate(Sds* str)
+inline RedisObj* StringObjectCreate(Sds*& str)
 {
     RedisObj* obj = nullptr;
     size_t len = str->length();
@@ -46,7 +46,8 @@ inline RedisObj* StringObjectCreate(Sds* str)
         // raw
         obj = Allocator::create<RedisObj>();
         obj->encoding = ObjEncoding::REDIS_ENCODING_RAW;
-        obj->data.ptr = Sds::create(str);
+        obj->data.ptr = str;
+        str = nullptr; // transfer ownership to obj
     }
 
     obj->type = ObjType::REDIS_STRING;
@@ -57,7 +58,7 @@ inline RedisObj* StringObjectCreate(Sds* str)
 
 inline RedisObj* StringObjectUpdate(RedisObj* obj, Sds* str)
 {
-    // Case 1: Encoding is INT, try to keep it as INT if possible
+    // Case 1: Encoding is INT, try to keep it as INT if possible (INT)
     if (obj->encoding == ObjEncoding::REDIS_ENCODING_INT)
     {
         optional<int64_t> value = sds2num<int64_t>(str);
@@ -68,7 +69,7 @@ inline RedisObj* StringObjectUpdate(RedisObj* obj, Sds* str)
         }
     }
 
-    // Case 2: Switch to EMBSTR if applicable
+    // Case 2: Switch to EMBSTR if applicable (INT or EMBSTR)
     int len = str->length();
     if (len <= EMBSTR_MAX_LENGTH && (obj->encoding == ObjEncoding::REDIS_ENCODING_INT ||
                                      obj->encoding == ObjEncoding::REDIS_ENCODING_EMBSTR))
@@ -95,20 +96,25 @@ inline RedisObj* StringObjectUpdate(RedisObj* obj, Sds* str)
         return obj;
     }
 
-    // Case 3: Switch to RAW encoding
+    // Case 3: Switch to RAW encoding (INT or EMBSTR or RAW)
     if (obj->encoding == ObjEncoding::REDIS_ENCODING_INT)
     {
-        obj->data.ptr = Sds::create(str);
+        obj->data.ptr = str;
+        str = nullptr; // transfer ownership to obj
     }
     else if (obj->encoding == ObjEncoding::REDIS_ENCODING_EMBSTR)
     {
         Sds* sds = reinterpret_cast<Sds*>(obj->data.ptr);
         obj = Allocator::recreate_with_extra<RedisObj>(obj, sizeof(SdsHdr<uint8_t>) + sds->length(),
                                                        0);
+        obj->data.ptr = str;
+        str = nullptr; // transfer ownership to obj
     }
     else
     {
-        obj->data.ptr = reinterpret_cast<Sds*>(obj->data.ptr)->copy(str);
+        Sds::destroy(reinterpret_cast<Sds*>(obj->data.ptr));
+        obj->data.ptr = str;
+        str = nullptr; // transfer ownership to obj
     }
     obj->encoding = ObjEncoding::REDIS_ENCODING_RAW;
     obj->lru = GetSecTimestamp();

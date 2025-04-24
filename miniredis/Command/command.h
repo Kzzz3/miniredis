@@ -33,6 +33,7 @@ bool CmdMset(shared_ptr<Connection> conn, Command& cmd);
 bool CmdIncr(shared_ptr<Connection> conn, Command& cmd);
 bool CmdDecr(shared_ptr<Connection> conn, Command& cmd);
 bool CmdAppend(shared_ptr<Connection> conn, Command& cmd);
+bool CmdCommand(shared_ptr<Connection> conn, Command& cmd);
 
 // hash command
 bool CmdHSet(shared_ptr<Connection> conn, Command& cmd);
