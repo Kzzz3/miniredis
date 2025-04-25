@@ -117,10 +117,11 @@ void test_sds_performance_append()
 
     Sds* sds = Sds::create("", 0, append_len);
     std::string str(900000, 'a');
-    // for (int i = 0; i < 1000000; ++i) {
-    //     sds = sds->append(append_data, append_len);
-    // }
-    sds = sds->append(str.c_str(), str.length());
+    for (int i = 0; i < 1000000; ++i)
+    {
+        sds = sds->append(append_data, append_len);
+    }
+    // sds = sds->append(str.c_str(), str.length());
 
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();

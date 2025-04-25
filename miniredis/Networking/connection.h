@@ -44,14 +44,14 @@ public:
         state = ConnectionState::CONN_STATE_CLOSED;
     }
 
-    void AsyncSend(unique_ptr<Sds, decltype(&Sds::destroy)>& str)
+    void Send(unique_ptr<Sds, decltype(&Sds::destroy)>&& str)
     {
         lock_guard<mutex> lock(close_mutex);
         if (state == ConnectionState::CONN_STATE_CLOSED)
             return;
 
         auto buffer = asio::const_buffer(str->buf, str->length());
-        socket.async_send(buffer, [sds = std::move(str)](const asio::error_code&, size_t) {});
+        socket.send(buffer, asio::socket_base::message_flags(0));
     }
 
     void AsyncSend(unique_ptr<Sds, decltype(&Sds::destroy)>&& str)

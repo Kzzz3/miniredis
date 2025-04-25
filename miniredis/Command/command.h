@@ -71,11 +71,109 @@ bool CmdKeyNum(shared_ptr<Connection> conn, Command& cmd);
 bool CmdFlushDB(shared_ptr<Connection> conn, Command& cmd);
 bool CmdFlushAll(shared_ptr<Connection> conn, Command& cmd);
 
-// assist function
-std::function<bool(shared_ptr<Connection> conn, Command&)> GetCommandHandler(Sds* cmdtype);
+static std::unordered_map<std::string, std::function<bool(shared_ptr<Connection> conn, Command&)>>
+    commands_map = {
+        // string command
+        {"set", CmdSet},
+        {"get", CmdGet},
+        {"mset", CmdMset},
+        {"incr", CmdIncr},
+        {"decr", CmdDecr},
+        {"append", CmdAppend},
+        {"command", CmdCommand},
 
-unique_ptr<Sds, decltype(&Sds::destroy)> GenerateErrorReply(const char* errmsg);
-unique_ptr<Sds, decltype(&Sds::destroy)> GenerateReply(unique_ptr<ValueRef>& result);
-unique_ptr<Sds, decltype(&Sds::destroy)> GenerateReply(unique_ptr<ValueRef>&& result);
-unique_ptr<Sds, decltype(&Sds::destroy)> GenerateReply(vector<unique_ptr<ValueRef>>& result);
-unique_ptr<Sds, decltype(&Sds::destroy)> GenerateReply(vector<unique_ptr<ValueRef>>&& result);
+        // hash command
+        {"hset", CmdHSet},
+        {"hget", CmdHGet},
+        {"hdel", CmdHDel},
+        {"hkeys", CmdHKeys},
+        {"hgetall", CmdHGetAll},
+
+        // list command
+        {"lpop", CmdLPop},
+        {"rpop", CmdRPop},
+        {"lpush", CmdLPush},
+        {"rpush", CmdRPush},
+        {"lrange", CmdLRange},
+
+        // set command
+        {"sadd", CmdSAdd},
+        {"srem", CmdSRem},
+        {"spop", CmdSPop},
+        {"smembers", CmdSMembers},
+        {"sismember", CmdSisMember},
+
+        // zset command
+        {"zadd", CmdZAdd},
+        {"zrem", CmdZRem},
+        {"zrange", CmdZRange},
+        {"zrevrange", CmdZRevRange},
+
+        // general command
+        {"del", CmdDel},
+        {"ping", CmdPing},
+        {"keynum", CmdKeyNum},
+        {"flushall", CmdFlushAll},
+};
+
+inline std::function<bool(shared_ptr<Connection>, Command&)> GetCommandHandler(Sds* cmdtype)
+{
+    std::string command(cmdtype->buf, cmdtype->length());
+    return commands_map.contains(command) ? commands_map[command] : nullptr;
+}
+
+inline unique_ptr<Sds, decltype(&Sds::destroy)> GenerateErrorReply(const char* errmsg)
+{
+    Sds* reply = Sds::create("-ERR ", 5, 5);
+    reply = reply->append(errmsg, strlen(errmsg));
+    reply = reply->append("\r\n", 2);
+
+    return {reply, &Sds::destroy};
+}
+
+template <typename T>
+concept ValidReplyType =
+    std::is_same_v<std::remove_cvref_t<T>, std::unique_ptr<ValueRef>> ||
+    std::is_same_v<std::remove_cvref_t<T>, std::vector<std::unique_ptr<ValueRef>>>;
+
+// 模板化的 GenerateReply 函数
+template <typename T>
+    requires ValidReplyType<T>
+std::unique_ptr<Sds, decltype(&Sds::destroy)> GenerateReply(T&& result)
+{
+    std::vector<std::unique_ptr<ValueRef>> vec;
+    if constexpr (std::is_same_v<std::remove_cvref_t<T>, std::unique_ptr<ValueRef>>)
+    {
+        vec.emplace_back(std::move(result));
+    }
+    else
+    {
+        vec = std::move(result);
+    }
+
+    // 核心处理逻辑
+    int size = vec.size();
+    std::string temp = std::to_string(size);
+
+    Sds* reply = Sds::create("*", 1, 1);
+    reply = reply->append(temp.c_str(), temp.length());
+    reply = reply->append("\r\n", 2);
+
+    for (auto& vr : vec)
+    {
+        if (vr == nullptr)
+        {
+            reply = reply->append("+nil\r\n", 6);
+            continue;
+        }
+
+        temp = std::to_string(vr->val->length());
+        reply = reply->append("$", 1);
+        reply = reply->append(temp.c_str(), temp.length());
+        reply = reply->append("\r\n", 2);
+        reply = reply->append(vr->val);
+        reply = reply->append("\r\n", 2);
+    }
+
+    return {reply, &Sds::destroy};
+}

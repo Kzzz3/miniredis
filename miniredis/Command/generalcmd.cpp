@@ -51,33 +51,6 @@ bool CmdKeyNum(shared_ptr<Connection> conn, Command& cmd)
         key_num += kvstore.size();
     }
 
-    // for (auto& kvstore : server.database.kvstores)
-    // {
-    //     for (auto& [key, value] : kvstore)
-    //     {
-    //         if (value->type == ObjType::REDIS_STRING)
-    //         {
-    //             key_num++;
-    //         }
-    //         else if (value->type == ObjType::REDIS_HASH)
-    //         {
-    //             key_num += reinterpret_cast<HashTable<Sds*>*>(value->data.ptr)->size();
-    //         }
-    //         else if (value->type == ObjType::REDIS_LIST)
-    //         {
-    //             key_num += reinterpret_cast<LinkedList*>(value->data.ptr)->size();
-    //         }
-    //         else if (value->type == ObjType::REDIS_SET)
-    //         {
-    //             key_num += reinterpret_cast<HashTable<Sds*>*>(value->data.ptr)->size();
-    //         }
-    //         else if (value->type == ObjType::REDIS_ZSET)
-    //         {
-    //             key_num += reinterpret_cast<RBTree*>(value->data.ptr)->rbt.size();
-    //         }
-    //     }
-    // }
-
     auto reply = GenerateReply(make_unique<ValueRef>(num2sds<int>(key_num), nullptr));
     conn->AsyncSend(std::move(reply));
     return true;
@@ -106,5 +79,8 @@ bool CmdFlushAll(shared_ptr<Connection> conn, Command& cmd)
         }
         kvstore.clear();
     }
+
+    auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("OK"), nullptr));
+    conn->AsyncSend(std::move(reply));
     return true;
 }

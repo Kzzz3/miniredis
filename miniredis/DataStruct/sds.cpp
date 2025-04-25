@@ -4,12 +4,64 @@ void Sds::destroy(Sds* s)
 {
     if (s == nullptr)
         return;
-    access_sdshdr(s,
-                  [](auto psdshdr) -> void
-                  {
-                      Allocator::destroy_with_extra<remove_pointer_t<decltype(psdshdr)>>(
-                          psdshdr, psdshdr->alloc);
-                  });
+
+    size_t alloc = s->capacity();
+    switch (static_cast<uint8_t>(s->buf[-1]))
+    {
+    case SDS_TYPE_8:
+        Allocator::destroy_with_extra(SDS_HDR(s, uint8_t), alloc);
+        break;
+    case SDS_TYPE_16:
+        Allocator::destroy_with_extra(SDS_HDR(s, uint16_t), alloc);
+        break;
+    case SDS_TYPE_32:
+        Allocator::destroy_with_extra(SDS_HDR(s, uint32_t), alloc);
+        break;
+    case SDS_TYPE_64:
+        Allocator::destroy_with_extra(SDS_HDR(s, uint64_t), alloc);
+        break;
+    default:
+        assert(false);
+    }
+}
+
+Sds* Sds::create(Sds* str, size_t alloc)
+{
+    return create(str->buf, str->length(), alloc);
+}
+
+Sds* Sds::create(const char* str, size_t len, size_t alloc)
+{
+    if (len == 0)
+        len = strlen(str);
+    alloc = max(alloc, len);
+
+    static constexpr auto allocate = []<typename T>(const char* str, size_t len,
+                                                    size_t alloc) -> Sds*
+    {
+        SdsHdr<T>* hdr = Allocator::create_with_extra<SdsHdr<T>>(alloc, len, alloc, sizeof(T));
+        memcpy(hdr->buf, str, len);
+        hdr->buf[len] = '\0';
+
+        return reinterpret_cast<Sds*>(hdr->buf);
+    };
+
+    if (alloc < numeric_limits<uint8_t>::max())
+    {
+        return allocate.operator()<uint8_t>(str, len, alloc);
+    }
+    else if (alloc < numeric_limits<uint16_t>::max())
+    {
+        return allocate.operator()<uint16_t>(str, len, alloc);
+    }
+    else if (alloc < numeric_limits<uint32_t>::max())
+    {
+        return allocate.operator()<uint32_t>(str, len, alloc);
+    }
+    else
+    {
+        return allocate.operator()<uint64_t>(str, len, alloc);
+    }
 }
 
 vector<char> Sds::serialize(Sds* str)
@@ -56,56 +108,38 @@ Sds* Sds::deserialize_from(const vector<char>& vec)
     }
 }
 
-Sds* Sds::create(Sds* str, size_t alloc)
-{
-    return create(str->buf, str->length(), alloc);
-}
-
-Sds* Sds::create(const char* str, size_t len, size_t alloc)
-{
-    if (len == 0)
-        len = strlen(str);
-    alloc = max(alloc, len);
-
-    auto allocate = [str, len, alloc]<typename T>() -> Sds*
-    {
-        SdsHdr<T>* hdr = Allocator::create_with_extra<SdsHdr<T>>(alloc);
-
-        hdr->len = len;
-        hdr->alloc = alloc;
-        hdr->flags = sizeof(T);
-        memcpy(hdr->buf, str, len);
-        hdr->buf[len] = '\0';
-
-        return reinterpret_cast<Sds*>(hdr->buf);
-    };
-
-    if (alloc < numeric_limits<uint8_t>::max())
-    {
-        return allocate.operator()<uint8_t>();
-    }
-    else if (alloc < numeric_limits<uint16_t>::max())
-    {
-        return allocate.operator()<uint16_t>();
-    }
-    else if (alloc < numeric_limits<uint32_t>::max())
-    {
-        return allocate.operator()<uint32_t>();
-    }
-    else
-    {
-        return allocate.operator()<uint64_t>();
-    }
-}
-
 size_t Sds::length()
 {
-    return access_sdshdr(this, [](auto psdshdr) -> size_t { return psdshdr->len; });
+    switch (static_cast<uint8_t>(this->buf[-1]))
+    {
+    case SDS_TYPE_8:
+        return SDS_HDR(this, uint8_t)->len;
+    case SDS_TYPE_16:
+        return SDS_HDR(this, uint16_t)->len;
+    case SDS_TYPE_32:
+        return SDS_HDR(this, uint32_t)->len;
+    case SDS_TYPE_64:
+        return SDS_HDR(this, uint64_t)->len;
+    default:
+        assert(false);
+    }
 }
 
 size_t Sds::capacity()
 {
-    return access_sdshdr(this, [](auto psdshdr) -> size_t { return psdshdr->alloc; });
+    switch (static_cast<uint8_t>(this->buf[-1]))
+    {
+    case SDS_TYPE_8:
+        return SDS_HDR(this, uint8_t)->alloc;
+    case SDS_TYPE_16:
+        return SDS_HDR(this, uint16_t)->alloc;
+    case SDS_TYPE_32:
+        return SDS_HDR(this, uint32_t)->alloc;
+    case SDS_TYPE_64:
+        return SDS_HDR(this, uint64_t)->alloc;
+    default:
+        assert(false);
+    }
 }
 
 size_t Sds::available()
@@ -120,13 +154,25 @@ size_t Sds::totalsize()
 
 size_t Sds::headersize()
 {
-    return access_sdshdr(this, [](auto psdshdr) -> size_t
-                         { return sizeof(remove_pointer_t<decltype(psdshdr)>) - 1; });
+    switch (static_cast<uint8_t>(this->buf[-1]))
+    {
+    case SDS_TYPE_8:
+        return sizeof(SdsHdr<uint8_t>) - 1;
+    case SDS_TYPE_16:
+        return sizeof(SdsHdr<uint16_t>) - 1;
+    case SDS_TYPE_32:
+        return sizeof(SdsHdr<uint32_t>) - 1;
+    case SDS_TYPE_64:
+        return sizeof(SdsHdr<uint64_t>) - 1;
+    default:
+        assert(false);
+    }
 }
 
 Sds* Sds::dilatation(size_t add_len)
 {
-    size_t len = length();
+    if (add_len == 0)
+        return this;
     size_t new_alloc = capacity() + add_len;
 
     if (new_alloc <= SDS_MAX_PREALLOC)
@@ -134,42 +180,64 @@ Sds* Sds::dilatation(size_t add_len)
     else
         new_alloc += SDS_MAX_PREALLOC;
 
-    auto allocate = [this, len, new_alloc]<typename T>() -> Sds*
+    static constexpr auto allocate = []<typename T_NEW>(Sds* str, size_t new_alloc) -> Sds*
     {
-        return access_sdshdr(
-            this,
-            [len, new_alloc](auto psdshdr) -> Sds*
-            {
-                SdsHdr<T>* new_psdshdr =
-                    Allocator::recreate_with_extra<SdsHdr<T>>(psdshdr, psdshdr->alloc, new_alloc);
+        size_t len = str->length();
+        size_t alloc = str->capacity();
+        size_t old_sdshdr_size = 0;
+        SdsHdr<T_NEW>* new_psdshdr = nullptr;
+        switch (static_cast<uint8_t>(str->buf[-1]))
+        {
+        case SDS_TYPE_8:
+            old_sdshdr_size = sizeof(SdsHdr<uint8_t>);
+            new_psdshdr = Allocator::recreate_with_extra<SdsHdr<T_NEW>>(SDS_HDR(str, uint8_t),
+                                                                        alloc, new_alloc);
+            break;
+        case SDS_TYPE_16:
+            old_sdshdr_size = sizeof(SdsHdr<uint16_t>);
+            new_psdshdr = Allocator::recreate_with_extra<SdsHdr<T_NEW>>(SDS_HDR(str, uint16_t),
+                                                                        alloc, new_alloc);
+            break;
+        case SDS_TYPE_32:
+            old_sdshdr_size = sizeof(SdsHdr<uint32_t>);
+            new_psdshdr = Allocator::recreate_with_extra<SdsHdr<T_NEW>>(SDS_HDR(str, uint32_t),
+                                                                        alloc, new_alloc);
+            break;
+        case SDS_TYPE_64:
+            old_sdshdr_size = sizeof(SdsHdr<uint64_t>);
+            new_psdshdr = Allocator::recreate_with_extra<SdsHdr<T_NEW>>(SDS_HDR(str, uint64_t),
+                                                                        alloc, new_alloc);
+            break;
+        default:
+            assert(false);
+        }
 
-                size_t offset = sizeof(SdsHdr<T>) - sizeof(remove_pointer_t<decltype(psdshdr)>);
-                memmove(new_psdshdr->buf, new_psdshdr->buf - offset, len);
+        size_t offset = sizeof(SdsHdr<T_NEW>) - old_sdshdr_size;
+        memmove(new_psdshdr->buf, new_psdshdr->buf - offset, len);
 
-                new_psdshdr->alloc = new_alloc;
-                new_psdshdr->len = len;
-                new_psdshdr->flags = sizeof(T);
-                new_psdshdr->buf[len] = '\0';
+        new_psdshdr->alloc = new_alloc;
+        new_psdshdr->len = len;
+        new_psdshdr->flags = sizeof(T_NEW);
+        new_psdshdr->buf[len] = '\0';
 
-                return reinterpret_cast<Sds*>(new_psdshdr->buf);
-            });
+        return reinterpret_cast<Sds*>(new_psdshdr->buf);
     };
 
     if (new_alloc < numeric_limits<uint8_t>::max())
     {
-        return allocate.operator()<uint8_t>();
+        return allocate.operator()<uint8_t>(this, new_alloc);
     }
     else if (new_alloc < numeric_limits<uint16_t>::max())
     {
-        return allocate.operator()<uint16_t>();
+        return allocate.operator()<uint16_t>(this, new_alloc);
     }
     else if (new_alloc < numeric_limits<uint32_t>::max())
     {
-        return allocate.operator()<uint32_t>();
+        return allocate.operator()<uint32_t>(this, new_alloc);
     }
     else
     {
-        return allocate.operator()<uint64_t>();
+        return allocate.operator()<uint64_t>(this, new_alloc);
     }
 }
 
@@ -180,15 +248,32 @@ Sds* Sds::copy(Sds* str)
 
 Sds* Sds::copy(const char* str, size_t len)
 {
-    Sds* ret = len <= capacity() ? this : dilatation(len - capacity());
+    size_t avail = capacity();
+    Sds* ret = len <= avail ? this : dilatation(len - avail);
 
     memcpy(ret->buf, str, len);
-    access_sdshdr(ret,
-                  [len](auto psdshdr)
-                  {
-                      psdshdr->len = len;
-                      psdshdr->buf[psdshdr->len] = '\0';
-                  });
+    switch (static_cast<uint8_t>(ret->buf[-1]))
+    {
+    case SDS_TYPE_8:
+        SDS_HDR(ret, uint8_t)->len = len;
+        SDS_HDR(ret, uint8_t)->buf[len] = '\0';
+        break;
+    case SDS_TYPE_16:
+        SDS_HDR(ret, uint16_t)->len = len;
+        SDS_HDR(ret, uint16_t)->buf[len] = '\0';
+        break;
+    case SDS_TYPE_32:
+        SDS_HDR(ret, uint32_t)->len = len;
+        SDS_HDR(ret, uint32_t)->buf[len] = '\0';
+        break;
+    case SDS_TYPE_64:
+        SDS_HDR(ret, uint64_t)->len = len;
+        SDS_HDR(ret, uint64_t)->buf[len] = '\0';
+        break;
+    default:
+        assert(false);
+    }
+
     return ret;
 }
 
@@ -199,15 +284,38 @@ Sds* Sds::append(Sds* str)
 
 Sds* Sds::append(const char* str, size_t len)
 {
-    Sds* ret = len <= available() ? this : dilatation(len - available());
+    size_t avail = available();
+    Sds* ret = len <= avail ? this : dilatation(len - avail);
 
     memcpy(ret->buf + ret->length(), str, len);
-    access_sdshdr(ret,
-                  [len](auto psdshdr)
-                  {
-                      psdshdr->len += len;
-                      psdshdr->buf[psdshdr->len] = '\0';
-                  });
+    switch (static_cast<uint8_t>(ret->buf[-1]))
+    {
+    case SDS_TYPE_8:
+        SDS_HDR(ret, uint8_t)->len += len;
+        SDS_HDR(ret, uint8_t)->buf[SDS_HDR(ret, uint8_t)->len] = '\0';
+        break;
+    case SDS_TYPE_16:
+        SDS_HDR(ret, uint16_t)->len += len;
+        SDS_HDR(ret, uint16_t)->buf[SDS_HDR(ret, uint16_t)->len] = '\0';
+        break;
+    case SDS_TYPE_32:
+        SDS_HDR(ret, uint32_t)->len += len;
+        SDS_HDR(ret, uint32_t)->buf[SDS_HDR(ret, uint32_t)->len] = '\0';
+        break;
+    case SDS_TYPE_64:
+        SDS_HDR(ret, uint64_t)->len += len;
+        SDS_HDR(ret, uint64_t)->buf[SDS_HDR(ret, uint64_t)->len] = '\0';
+        break;
+    default:
+        assert(false);
+    }
+
+    // access_sdshdr(ret,
+    //               [len](auto psdshdr)
+    //               {
+    //                   psdshdr->len += len;
+    //                   psdshdr->buf[psdshdr->len] = '\0';
+    //               });
     return ret;
 }
 

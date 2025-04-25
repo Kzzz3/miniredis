@@ -10,7 +10,7 @@ size_t DEL_TIMER_INTERVAL = 60;
 Server server;
 
 Server::Server()
-    : io_context(8), exec_threadpool(1), database(exec_threadpool, io_context),
+    : io_context(1), exec_threadpool(1), database(exec_threadpool, io_context),
       signals(io_context, SIGINT, SIGTERM), connection_id(0),
       processed_print_timer(io_context, std::chrono::seconds(1)), total_commands_received(0),
       total_commands_processed(0)

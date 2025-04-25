@@ -33,8 +33,11 @@ constexpr uint8_t SDS_TYPE_8 = sizeof(uint8_t);
 constexpr uint8_t SDS_TYPE_16 = sizeof(uint16_t);
 constexpr uint8_t SDS_TYPE_32 = sizeof(uint32_t);
 constexpr uint8_t SDS_TYPE_64 = sizeof(uint64_t);
-
 constexpr size_t SDS_MAX_PREALLOC = 1024 * 1024;
+
+#define SDS_HDR(s, T) (reinterpret_cast<SdsHdr<T>*>(s->buf - sizeof(SdsHdr<T>) + 1))
+#define SDS_HDR_VAR(s, T)                                                                          \
+    struct struct SdsHdr<T>* sdshdr = reinterpret_cast<SdsHdr<T>*>(s->buf - sizeof(SdsHdr<T>) + 1);
 
 #pragma pack(push, 1)
 template <typename T>
@@ -145,22 +148,17 @@ template <> struct equal_to<Sds*>
 
 template <> struct formatter<Sds*>
 {
-    // 解析格式说明符（可选）
     constexpr auto parse(std::format_parse_context& ctx)
     {
-        // 简单起见，不处理复杂格式说明符
         return ctx.begin();
     }
 
-    // 格式化 Person* 指针
     auto format(const Sds* p, std::format_context& ctx) const
     {
         if (p == nullptr)
         {
-            // 空指针情况
             return std::format_to(ctx.out(), "nullptr");
         }
-        // 格式化指向的 Person 对象
         return std::format_to(ctx.out(), "Alloc:{}, Used:{}, content:{}", ((Sds*)p)->capacity(),
                               ((Sds*)p)->length(),
                               string_view(((Sds*)p)->buf, ((Sds*)p)->length()));
