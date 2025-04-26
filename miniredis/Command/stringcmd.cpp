@@ -66,9 +66,9 @@ bool CmdMset(shared_ptr<Connection> conn, Command& cmd)
     if (cmd.size() < 3 || cmd.size() % 2 == 0)
         return false;
 
-    HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
     for (size_t i = 1; i < cmd.size(); i += 2)
     {
+        HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[i]);
         if (!kvstore.contains(cmd[i]))
         {
             kvstore[cmd[i]] = StringObjectCreate(cmd[i + 1]);

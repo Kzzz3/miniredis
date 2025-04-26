@@ -36,7 +36,7 @@ extern size_t RDB_TIMER_INTERVAL;
 extern size_t AOF_TIMER_INTERVAL;
 extern size_t DEL_TIMER_INTERVAL;
 
-constexpr size_t IO_THREAD_NUM = 2;
+constexpr size_t IO_THREAD_NUM = 1;
 constexpr size_t EXEC_THREAD_NUM = 1;
 
 class Server

@@ -70,7 +70,7 @@ inline RedisObj* StringObjectUpdate(RedisObj* obj, Sds* str)
     }
 
     // Case 2: Switch to EMBSTR if applicable (INT or EMBSTR)
-    int len = str->length();
+    size_t len = str->length();
     if (len <= EMBSTR_MAX_LENGTH && (obj->encoding == ObjEncoding::REDIS_ENCODING_INT ||
                                      obj->encoding == ObjEncoding::REDIS_ENCODING_EMBSTR))
     {
@@ -81,6 +81,11 @@ inline RedisObj* StringObjectUpdate(RedisObj* obj, Sds* str)
         else
         {
             Sds* sds = reinterpret_cast<Sds*>(obj->data.ptr);
+            if (sds->capacity() >= len)
+            {
+                sds->copy(str);
+                return obj;
+            }
             obj = Allocator::recreate_with_extra<RedisObj>(
                 obj, sizeof(SdsHdr<uint8_t>) + sds->length(), sizeof(SdsHdr<uint8_t>) + len);
         }

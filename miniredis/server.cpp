@@ -115,15 +115,16 @@ awaitable<std::expected<Command, std::error_code>> Server::readCommandFromClient
     size_t n = 0;
     const char* data = nullptr;
 
-    n = co_await async_read_until(conn->socket, conn->read_buffer, "\r\n", use_awaitable);
-    data = asio::buffer_cast<const char*>(conn->read_buffer.data());
-
-    // Handle PING
-    if (strncmp((char*)data, "PING\r\n", n) == 0)
+    while (true)
     {
+        n = co_await async_read_until(conn->socket, conn->read_buffer, "\r\n", use_awaitable);
+        data = asio::buffer_cast<const char*>(conn->read_buffer.data());
+
+        if (strncmp((char*)data, "PING\r\n", n) != 0)
+            break;
+
         conn->read_buffer.consume(n);
         co_await asio::async_write(conn->socket, asio::buffer("+PONG\r\n", 7), use_awaitable);
-        co_return co_await readCommandFromClient(conn);
     }
 
     // Check for array prefix
