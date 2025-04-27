@@ -42,8 +42,9 @@ constexpr size_t EXEC_THREAD_NUM = 1;
 class Server
 {
 public:
-    asio::io_context io_context; // io_context
-    thread_pool exec_threadpool; // execute thread
+    // asio::io_context io_context;          // io_context
+    thread_pool exec_threadpool;          // execute thread
+    vector<asio::io_context> io_contexts; // io_contexts for async operations
 
     RedisDb database; // database and RDB
 
@@ -58,7 +59,7 @@ public:
     Server();
     ~Server();
 
-    awaitable<void> listenerHandler();
+    awaitable<void> listenerHandler(asio::io_context& io_context);
     awaitable<void> handleConnection(shared_ptr<Connection> conn);
     awaitable<std::expected<Command, std::error_code>> readCommandFromClient(
         shared_ptr<Connection> conn);

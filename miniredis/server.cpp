@@ -10,13 +10,19 @@ size_t DEL_TIMER_INTERVAL = 60;
 Server server;
 
 Server::Server()
-    : io_context(1), exec_threadpool(1), database(exec_threadpool, io_context),
-      signals(io_context, SIGINT, SIGTERM), connection_id(0),
-      processed_print_timer(io_context, std::chrono::seconds(1)), total_commands_received(0),
-      total_commands_processed(0)
+    : exec_threadpool(EXEC_THREAD_NUM), io_contexts(IO_THREAD_NUM),
+      database(exec_threadpool, io_contexts[0]), signals(io_contexts[0], SIGINT, SIGTERM),
+      connection_id(0), processed_print_timer(io_contexts[0], std::chrono::seconds(1)),
+      total_commands_received(0), total_commands_processed(0)
 {
     // listen for signals
-    signals.async_wait([&](const asio::error_code&, int) { io_context.stop(); });
+    signals.async_wait(
+        [&](const asio::error_code&, int)
+        {
+            for (auto& io_context : io_contexts)
+                io_context.stop();
+            exec_threadpool.join();
+        });
 
     // print total commands processed every second
     static auto printProcessed = [this]() -> awaitable<void>
@@ -32,14 +38,13 @@ Server::Server()
             total_commands_processed = 0;
         }
     };
-    co_spawn(io_context, printProcessed(), detached);
-
-    // listen for clients
-    co_spawn(io_context, listenerHandler(), detached);
+    co_spawn(io_contexts[0], printProcessed(), detached);
 
     for (size_t i = 0; i < IO_THREAD_NUM; i++)
     {
-        thread([&]() { io_context.run(); }).detach();
+        // listen for clients
+        co_spawn(io_contexts[i], listenerHandler(io_contexts[i]), detached);
+        thread([&, i]() { io_contexts[i].run(); }).detach();
     }
 }
 
@@ -47,7 +52,7 @@ Server::~Server()
 {
 }
 
-awaitable<void> Server::listenerHandler()
+awaitable<void> Server::listenerHandler(asio::io_context& io_context)
 {
     tcp::acceptor acceptor(io_context, {tcp::v4(), 10087});
     while (true)
@@ -76,6 +81,12 @@ awaitable<void> Server::handleConnection(shared_ptr<Connection> conn)
 
         Command cmd = result.value();
         cmd[0]->convertToLower();
+
+        // for (auto& sds : cmd)
+        // {
+        //     std::cout << std::string_view(sds->buf, sds->length()) << " ";
+        // }
+        // std::cout << std::endl;
 
         // command process
         std::function<bool(shared_ptr<Connection> conn, Command&)> handler = CommandProcess(cmd);

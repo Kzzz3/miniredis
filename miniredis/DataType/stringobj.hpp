@@ -56,7 +56,7 @@ inline RedisObj* StringObjectCreate(Sds*& str)
     return obj;
 }
 
-inline RedisObj* StringObjectUpdate(RedisObj* obj, Sds* str)
+inline RedisObj* StringObjectUpdate(RedisObj* obj, Sds*& str)
 {
     // Case 1: Encoding is INT, try to keep it as INT if possible (INT)
     if (obj->encoding == ObjEncoding::REDIS_ENCODING_INT)

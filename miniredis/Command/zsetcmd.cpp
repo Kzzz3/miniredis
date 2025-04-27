@@ -22,10 +22,13 @@ bool CmdZAdd(shared_ptr<Connection> conn, Command& cmd)
         return false;
     }
 
+    size_t successedNum = 0;
     for (size_t i = 2; i < size; i += 2)
     {
-        ZsetObjectAdd(obj, sds2num<double>(cmd[i]).value(), cmd[i + 1]);
+        successedNum += ZsetObjectAdd(obj, sds2num<double>(cmd[i]).value(), cmd[i + 1]);
     }
+    auto reply = GenerateReply(make_unique<ValueRef>(num2sds(successedNum), nullptr));
+    conn->AsyncSend(std::move(reply));
     return true;
 }
 
@@ -82,6 +85,34 @@ bool CmdZRange(shared_ptr<Connection> conn, Command& cmd)
 
     auto reply = GenerateReply(
         ZsetObjectRange(obj, sds2num<double>(cmd[2]).value(), sds2num<double>(cmd[3]).value()));
+    conn->AsyncSend(std::move(reply));
+    return true;
+}
+
+bool CmdZPopMin(shared_ptr<Connection> conn, Command& cmd)
+{
+    size_t size = cmd.size();
+    if (size != 2)
+        return false;
+
+    HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
+    if (!kvstore.contains(cmd[1]))
+    {
+        auto reply = GenerateErrorReply("nil");
+        conn->AsyncSend(std::move(reply));
+        return false;
+    }
+
+    auto obj = kvstore[cmd[1]];
+    if (obj->type != ObjType::REDIS_ZSET)
+    {
+        auto reply =
+            GenerateErrorReply("WRONGTYPE Operation against a key holding the wrong kind of value");
+        conn->AsyncSend(std::move(reply));
+        return false;
+    }
+
+    auto reply = GenerateReply(ZsetObjectRange(obj, 0, 0));
     conn->AsyncSend(std::move(reply));
     return true;
 }

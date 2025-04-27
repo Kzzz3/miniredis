@@ -28,7 +28,6 @@ bool CmdSet(shared_ptr<Connection> conn, Command& cmd)
         kvstore[cmd[1]] = StringObjectUpdate(obj, cmd[2]);
     }
 
-    kvstore[cmd[1]] = StringObjectUpdate(obj, cmd[2]);
     auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("OK"), nullptr));
     conn->AsyncSend(std::move(reply));
     return true;
@@ -101,9 +100,13 @@ bool CmdIncr(shared_ptr<Connection> conn, Command& cmd)
     HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
     if (!kvstore.contains(cmd[1]))
     {
-        auto reply = GenerateErrorReply("key doesn't exist");
+        Sds* value = Sds::create("1");
+        kvstore[cmd[1]] = StringObjectCreate(value);
+        cmd[1] = nullptr;
+
+        auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("1"), nullptr));
         conn->AsyncSend(std::move(reply));
-        return false;
+        return true;
     }
 
     auto obj = kvstore[cmd[1]];
@@ -123,6 +126,8 @@ bool CmdIncr(shared_ptr<Connection> conn, Command& cmd)
     }
 
     obj->data.num++;
+    auto reply = GenerateReply(make_unique<ValueRef>(num2sds(obj->data.num), nullptr));
+    conn->AsyncSend(std::move(reply));
     return true;
 }
 
@@ -134,9 +139,13 @@ bool CmdDecr(shared_ptr<Connection> conn, Command& cmd)
     HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
     if (!kvstore.contains(cmd[1]))
     {
-        auto reply = GenerateErrorReply("key doesn't exist");
+        Sds* value = Sds::create("-1");
+        kvstore[cmd[1]] = StringObjectCreate(value);
+        cmd[1] = nullptr;
+
+        auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("-1"), nullptr));
         conn->AsyncSend(std::move(reply));
-        return false;
+        return true;
     }
 
     auto obj = kvstore[cmd[1]];
@@ -156,6 +165,8 @@ bool CmdDecr(shared_ptr<Connection> conn, Command& cmd)
     }
 
     obj->data.num--;
+    auto reply = GenerateReply(make_unique<ValueRef>(num2sds(obj->data.num), nullptr));
+    conn->AsyncSend(std::move(reply));
     return true;
 }
 

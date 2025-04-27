@@ -16,10 +16,22 @@ inline RedisObj* ZsetObjectCreate()
     return obj;
 }
 
-inline void ZsetObjectAdd(RedisObj* obj, double score, Sds* member)
+inline bool ZsetObjectAdd(RedisObj* obj, double score, Sds*& member)
 {
     RBTree& zset = *reinterpret_cast<RBTree*>(obj->data.ptr);
+    if (zset.contains(member))
+    {
+        auto entry = zset.find(member);
+        Sds* entryvalue = entry->second;
+
+        zset.remove(member);
+        zset.add(score, entryvalue);
+        return false;
+    }
+
     zset.add(score, Sds::create(member));
+    member = nullptr;
+    return true;
 }
 
 inline void ZsetObjectRemove(RedisObj* obj, Sds* member)

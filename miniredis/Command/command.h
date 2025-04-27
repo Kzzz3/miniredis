@@ -60,6 +60,7 @@ bool CmdSisMember(shared_ptr<Connection> conn, Command& cmd);
 bool CmdZAdd(shared_ptr<Connection> conn, Command& cmd);
 bool CmdZRem(shared_ptr<Connection> conn, Command& cmd);
 bool CmdZRange(shared_ptr<Connection> conn, Command& cmd);
+bool CmdZPopMin(shared_ptr<Connection> conn, Command& cmd);
 bool CmdZRevRange(shared_ptr<Connection> conn, Command& cmd);
 
 // free command
@@ -70,6 +71,9 @@ bool CmdExpire(shared_ptr<Connection> conn, Command& cmd);
 bool CmdKeyNum(shared_ptr<Connection> conn, Command& cmd);
 bool CmdFlushDB(shared_ptr<Connection> conn, Command& cmd);
 bool CmdFlushAll(shared_ptr<Connection> conn, Command& cmd);
+
+// config command
+bool CmdConfigGet(shared_ptr<Connection> conn, Command& cmd);
 
 static std::unordered_map<std::string, std::function<bool(shared_ptr<Connection> conn, Command&)>>
     commands_map = {
@@ -107,6 +111,7 @@ static std::unordered_map<std::string, std::function<bool(shared_ptr<Connection>
         {"zadd", CmdZAdd},
         {"zrem", CmdZRem},
         {"zrange", CmdZRange},
+        {"zpopmin", CmdZPopMin},
         {"zrevrange", CmdZRevRange},
 
         // general command
@@ -114,6 +119,7 @@ static std::unordered_map<std::string, std::function<bool(shared_ptr<Connection>
         {"ping", CmdPing},
         {"keynum", CmdKeyNum},
         {"flushall", CmdFlushAll},
+        {"config", CmdConfigGet},
 };
 
 inline std::function<bool(shared_ptr<Connection>, Command&)> GetCommandHandler(Sds* cmdtype)

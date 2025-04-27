@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.31)
+cmake_minimum_required(VERSION 3.28)
 project(miniredis VERSION 1.0 LANGUAGES CXX)
 
 # 设置 C++ 标准
@@ -8,8 +8,8 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2  -Wall")
 set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O2  -Wall")
 
 # 设置 vcpkg 工具链文件路径
-set(CMAKE_PREFIX_PATH "/home/kzzz3/vcpkg/installed/x64-linux")
-set(CMAKE_TOOLCHAIN_FILE "/home/kzzz3/vcpkg/scripts/buildsystems/vcpkg.cmake")
+set(CMAKE_PREFIX_PATH "/home/kzzz3/tool/vcpkg/installed/x64-linux")
+set(CMAKE_TOOLCHAIN_FILE "/home/kzzz3/tool/vcpkg/scripts/buildsystems/vcpkg.cmake")
 
 # 包含子目录
 add_subdirectory(tests)

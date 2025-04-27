@@ -84,3 +84,28 @@ bool CmdFlushAll(shared_ptr<Connection> conn, Command& cmd)
     conn->AsyncSend(std::move(reply));
     return true;
 }
+
+bool CmdConfigGet(shared_ptr<Connection> conn, Command& cmd)
+{
+    std::vector<std::unique_ptr<ValueRef>> vec;
+    if (cmd[2]->strcmp("save") == 0)
+    {
+        vec.emplace_back(make_unique<ValueRef>(Sds::create("save"), nullptr));
+        vec.emplace_back(make_unique<ValueRef>(Sds::create("3600 1 300 100 60 10000"), nullptr));
+    }
+    else if (cmd[2]->strcmp("appendonly") == 0)
+    {
+        vec.emplace_back(make_unique<ValueRef>(Sds::create("appendonly"), nullptr));
+        vec.emplace_back(make_unique<ValueRef>(Sds::create("no"), nullptr));
+    }
+    else
+    {
+        auto reply = GenerateErrorReply("ERR unknown config parameter");
+        conn->AsyncSend(std::move(reply));
+        return false;
+    }
+
+    auto reply = GenerateReply(std::move(vec));
+    conn->AsyncSend(std::move(reply));
+    return true;
+}
