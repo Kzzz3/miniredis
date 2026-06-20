@@ -82,6 +82,12 @@ inline bool SetObjectIsMember(RedisObj* obj, Sds* member)
     return ht.contains(member);
 }
 
+inline size_t SetObjectCard(RedisObj* obj)
+{
+    HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
+    return ht.size();
+}
+
 inline void SetObjectDataSerialize(ofstream& ofs, RedisObj* obj)
 {
     HashTable<Sds*>::serialize_to(ofs, reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr),

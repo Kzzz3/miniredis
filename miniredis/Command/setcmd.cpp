@@ -145,3 +145,31 @@ bool CmdSisMember(shared_ptr<Connection> conn, Command& cmd)
     conn->AsyncSend(std::move(reply));
     return true;
 }
+
+bool CmdSCard(shared_ptr<Connection> conn, Command& cmd)
+{
+    if (cmd.size() != 2)
+        return false;
+
+    HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
+    if (!kvstore.contains(cmd[1]))
+    {
+        auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("0"), nullptr));
+        conn->AsyncSend(std::move(reply));
+        return true;
+    }
+
+    auto obj = kvstore[cmd[1]];
+    if (obj->type != ObjType::REDIS_SET)
+    {
+        auto reply =
+            GenerateErrorReply("WRONGTYPE Operation against a key holding the wrong kind of value");
+        conn->AsyncSend(std::move(reply));
+        return false;
+    }
+
+    size_t cardinality = SetObjectCard(obj);
+    auto reply = GenerateReply(make_unique<ValueRef>(num2sds(cardinality), nullptr));
+    conn->AsyncSend(std::move(reply));
+    return true;
+}

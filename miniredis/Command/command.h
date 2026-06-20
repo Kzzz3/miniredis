@@ -64,6 +64,7 @@ bool CmdSRem(shared_ptr<Connection> conn, Command& cmd);
 bool CmdSPop(shared_ptr<Connection> conn, Command& cmd);
 bool CmdSMembers(shared_ptr<Connection> conn, Command& cmd);
 bool CmdSisMember(shared_ptr<Connection> conn, Command& cmd);
+bool CmdSCard(shared_ptr<Connection> conn, Command& cmd);
 
 // zset command
 bool CmdZAdd(shared_ptr<Connection> conn, Command& cmd);
@@ -125,6 +126,7 @@ inline const std::unordered_map<std::string, std::function<bool(shared_ptr<Conne
         {"spop", CmdSPop},
         {"smembers", CmdSMembers},
         {"sismember", CmdSisMember},
+        {"scard", CmdSCard},
 
         // zset command
         {"zadd", CmdZAdd},
