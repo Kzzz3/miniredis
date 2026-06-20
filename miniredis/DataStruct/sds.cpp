@@ -252,27 +252,14 @@ Sds* Sds::copy(const char* str, size_t len)
     Sds* ret = len <= avail ? this : dilatation(len - avail);
 
     memcpy(ret->buf, str, len);
-    switch (static_cast<uint8_t>(ret->buf[-1]))
-    {
-    case SDS_TYPE_8:
-        SDS_HDR(ret, uint8_t)->len = len;
-        SDS_HDR(ret, uint8_t)->buf[len] = '\0';
-        break;
-    case SDS_TYPE_16:
-        SDS_HDR(ret, uint16_t)->len = len;
-        SDS_HDR(ret, uint16_t)->buf[len] = '\0';
-        break;
-    case SDS_TYPE_32:
-        SDS_HDR(ret, uint32_t)->len = len;
-        SDS_HDR(ret, uint32_t)->buf[len] = '\0';
-        break;
-    case SDS_TYPE_64:
-        SDS_HDR(ret, uint64_t)->len = len;
-        SDS_HDR(ret, uint64_t)->buf[len] = '\0';
-        break;
-    default:
-        assert(false);
-    }
+
+    // Use access_sdshdr to simplify header update
+    access_sdshdr(ret,
+                  [len](auto psdshdr)
+                  {
+                      psdshdr->len = len;
+                      psdshdr->buf[len] = '\0';
+                  });
 
     return ret;
 }
@@ -288,34 +275,15 @@ Sds* Sds::append(const char* str, size_t len)
     Sds* ret = len <= avail ? this : dilatation(len - avail);
 
     memcpy(ret->buf + ret->length(), str, len);
-    switch (static_cast<uint8_t>(ret->buf[-1]))
-    {
-    case SDS_TYPE_8:
-        SDS_HDR(ret, uint8_t)->len += len;
-        SDS_HDR(ret, uint8_t)->buf[SDS_HDR(ret, uint8_t)->len] = '\0';
-        break;
-    case SDS_TYPE_16:
-        SDS_HDR(ret, uint16_t)->len += len;
-        SDS_HDR(ret, uint16_t)->buf[SDS_HDR(ret, uint16_t)->len] = '\0';
-        break;
-    case SDS_TYPE_32:
-        SDS_HDR(ret, uint32_t)->len += len;
-        SDS_HDR(ret, uint32_t)->buf[SDS_HDR(ret, uint32_t)->len] = '\0';
-        break;
-    case SDS_TYPE_64:
-        SDS_HDR(ret, uint64_t)->len += len;
-        SDS_HDR(ret, uint64_t)->buf[SDS_HDR(ret, uint64_t)->len] = '\0';
-        break;
-    default:
-        assert(false);
-    }
 
-    // access_sdshdr(ret,
-    //               [len](auto psdshdr)
-    //               {
-    //                   psdshdr->len += len;
-    //                   psdshdr->buf[psdshdr->len] = '\0';
-    //               });
+    // Use access_sdshdr to simplify header update
+    access_sdshdr(ret,
+                  [len](auto psdshdr)
+                  {
+                      psdshdr->len += len;
+                      psdshdr->buf[psdshdr->len] = '\0';
+                  });
+
     return ret;
 }
 

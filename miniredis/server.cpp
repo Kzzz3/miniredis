@@ -81,24 +81,20 @@ awaitable<void> Server::handleConnection(shared_ptr<Connection> conn)
             co_return;
         }
 
-        Command cmd = result.value();
+        // Use move semantics to avoid copies
+        Command cmd = std::move(result.value());
         cmd[0]->convertToLower();
 
-        // for (auto& sds : cmd)
-        // {
-        //     std::cout << std::string_view(sds->buf, sds->length()) << " ";
-        // }
-        // std::cout << std::endl;
-
         // command process
-        std::function<bool(shared_ptr<Connection> conn, Command&)> handler = CommandProcess(cmd);
+        auto handler = CommandProcess(cmd);
 
         // execute command
         if (handler)
         {
             total_commands_received++;
+            // Move cmd into lambda to avoid copy
             asio::post(exec_threadpool,
-                       [this, conn, handler, cmd]() mutable
+                       [this, conn, handler, cmd = std::move(cmd)]() mutable
                        {
                            bool success = handler(conn, cmd);
                            if (AOF_ENABLED && success && Aof::isCmdNeedAof(cmd[0]))
@@ -111,7 +107,6 @@ awaitable<void> Server::handleConnection(shared_ptr<Connection> conn)
                                    Sds::destroy(sds);
                            }
                            total_commands_processed++;
-                           //    std::cout << Allocator::current_allocated << std::endl;
                        });
         }
         else

@@ -1,5 +1,6 @@
 #pragma once
 #include <mutex>
+#include <atomic>
 #include <asio.hpp>
 
 using asio::streambuf;
@@ -7,10 +8,11 @@ using asio::ip::tcp;
 using std::lock_guard;
 using std::mutex;
 using std::unique_ptr;
+using std::atomic;
 
 constexpr uint64_t BUFFER_MAX_SIZE = 1024 * 1024 * 15;
 
-enum class ConnectionState
+enum class ConnectionState : uint8_t
 {
     CONN_STATE_NONE,
     CONN_STATE_CONNECTING,
@@ -24,40 +26,42 @@ class Connection
 {
 public:
     uint64_t id;
-    mutex close_mutex;
+    atomic<ConnectionState> state;  // Use atomic for lock-free state check
     tcp::socket socket;
-    ConnectionState state;
     streambuf read_buffer;
 
 public:
     Connection(uint64_t id, tcp::socket&& socket)
-        : id(id), socket(std::move(socket)), state(ConnectionState::CONN_STATE_NONE),
-          read_buffer(BUFFER_MAX_SIZE)
+        : id(id), state(ConnectionState::CONN_STATE_NONE),
+          socket(std::move(socket)), read_buffer(BUFFER_MAX_SIZE)
     {
     }
 
     void Close()
     {
-        lock_guard<mutex> lock(close_mutex);
-
-        socket.close();
-        state = ConnectionState::CONN_STATE_CLOSED;
+        // Use atomic exchange to ensure only one thread closes
+        ConnectionState expected = ConnectionState::CONN_STATE_CONNECTED;
+        if (state.compare_exchange_strong(expected, ConnectionState::CONN_STATE_CLOSED))
+        {
+            asio::error_code ec;
+            socket.shutdown(tcp::socket::shutdown_both, ec);
+            socket.close(ec);
+        }
     }
 
     void Send(unique_ptr<Sds, decltype(&Sds::destroy)>&& str)
     {
-        lock_guard<mutex> lock(close_mutex);
-        if (state == ConnectionState::CONN_STATE_CLOSED)
+        if (state.load() == ConnectionState::CONN_STATE_CLOSED)
             return;
 
+        asio::error_code ec;
         auto buffer = asio::const_buffer(str->buf, str->length());
-        socket.send(buffer, asio::socket_base::message_flags(0));
+        socket.send(buffer, asio::socket_base::message_flags(0), ec);
     }
 
     void AsyncSend(unique_ptr<Sds, decltype(&Sds::destroy)>&& str)
     {
-        lock_guard<mutex> lock(close_mutex);
-        if (state == ConnectionState::CONN_STATE_CLOSED)
+        if (state.load() == ConnectionState::CONN_STATE_CLOSED)
             return;
 
         auto buffer = asio::const_buffer(str->buf, str->length());
