@@ -1,6 +1,8 @@
 #pragma once
 #include <mutex>
 #include <atomic>
+#include <vector>
+#include <unordered_set>
 #include <asio.hpp>
 
 using asio::streambuf;
@@ -9,8 +11,14 @@ using std::lock_guard;
 using std::mutex;
 using std::unique_ptr;
 using std::atomic;
+using std::vector;
+using std::unordered_set;
 
 constexpr uint64_t BUFFER_MAX_SIZE = 1024 * 1024 * 15;
+
+// Forward declaration
+class Sds;
+using Command = vector<Sds*>;
 
 enum class ConnectionState : uint8_t
 {
@@ -29,6 +37,11 @@ public:
     atomic<ConnectionState> state;  // Use atomic for lock-free state check
     tcp::socket socket;
     streambuf read_buffer;
+
+    // Transaction state
+    bool in_transaction = false;  // Whether we are in a transaction
+    vector<Command> command_queue;  // Queued commands for transaction
+    unordered_set<Sds*> watched_keys;  // Keys being watched for optimistic locking
 
 public:
     Connection(uint64_t id, tcp::socket&& socket)
@@ -66,5 +79,35 @@ public:
 
         auto buffer = asio::const_buffer(str->buf, str->length());
         socket.async_send(buffer, [sds = std::move(str)](const asio::error_code&, size_t) {});
+    }
+
+    // Transaction methods
+    void multi()
+    {
+        in_transaction = true;
+        command_queue.clear();
+    }
+
+    void discard()
+    {
+        in_transaction = false;
+        // Clear command queue
+        for (auto& cmd : command_queue)
+        {
+            for (auto& sds : cmd)
+                Sds::destroy(sds);
+        }
+        command_queue.clear();
+        watched_keys.clear();
+    }
+
+    void watch(Sds* key)
+    {
+        watched_keys.insert(key);
+    }
+
+    void unwatch()
+    {
+        watched_keys.clear();
     }
 };

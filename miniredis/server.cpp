@@ -85,34 +85,81 @@ awaitable<void> Server::handleConnection(shared_ptr<Connection> conn)
         Command cmd = std::move(result.value());
         cmd[0]->convertToLower();
 
-        // command process
-        auto handler = CommandProcess(cmd);
-
-        // execute command
-        if (handler)
+        // Check if we are in a transaction
+        if (conn->in_transaction)
         {
-            total_commands_received++;
-            // Move cmd into lambda to avoid copy
-            asio::post(exec_threadpool,
-                       [this, conn, handler, cmd = std::move(cmd)]() mutable
-                       {
-                           bool success = handler(conn, cmd);
-                           if (AOF_ENABLED && success && Aof::isCmdNeedAof(cmd[0]))
-                           {
-                               database.aof.addCmdToAof(cmd);
-                           }
-                           else
-                           {
-                               for (auto& sds : cmd)
-                                   Sds::destroy(sds);
-                           }
-                           total_commands_processed++;
-                       });
+            // Check if this is MULTI, EXEC, DISCARD, WATCH, or UNWATCH
+            std::string command_str(cmd[0]->buf, cmd[0]->length());
+            if (command_str == "multi" || command_str == "exec" || 
+                command_str == "discard" || command_str == "watch" || 
+                command_str == "unwatch")
+            {
+                // Execute transaction commands immediately
+                auto handler = CommandProcess(cmd);
+                if (handler)
+                {
+                    total_commands_received++;
+                    asio::post(exec_threadpool,
+                               [this, conn, handler, cmd = std::move(cmd)]() mutable
+                               {
+                                   bool success = handler(conn, cmd);
+                                   if (AOF_ENABLED && success && Aof::isCmdNeedAof(cmd[0]))
+                                   {
+                                       database.aof.addCmdToAof(cmd);
+                                   }
+                                   else
+                                   {
+                                       for (auto& sds : cmd)
+                                           Sds::destroy(sds);
+                                   }
+                                   total_commands_processed++;
+                               });
+                }
+                else
+                {
+                    for (auto& sds : cmd)
+                        Sds::destroy(sds);
+                }
+            }
+            else
+            {
+                // Queue the command for later execution
+                conn->command_queue.push_back(std::move(cmd));
+                auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("QUEUED"), nullptr));
+                conn->AsyncSend(std::move(reply));
+            }
         }
         else
         {
-            for (auto& sds : cmd)
-                Sds::destroy(sds);
+            // Normal command processing
+            auto handler = CommandProcess(cmd);
+
+            // execute command
+            if (handler)
+            {
+                total_commands_received++;
+                // Move cmd into lambda to avoid copy
+                asio::post(exec_threadpool,
+                           [this, conn, handler, cmd = std::move(cmd)]() mutable
+                           {
+                               bool success = handler(conn, cmd);
+                               if (AOF_ENABLED && success && Aof::isCmdNeedAof(cmd[0]))
+                               {
+                                   database.aof.addCmdToAof(cmd);
+                               }
+                               else
+                               {
+                                   for (auto& sds : cmd)
+                                       Sds::destroy(sds);
+                               }
+                               total_commands_processed++;
+                           });
+            }
+            else
+            {
+                for (auto& sds : cmd)
+                    Sds::destroy(sds);
+            }
         }
     }
 }

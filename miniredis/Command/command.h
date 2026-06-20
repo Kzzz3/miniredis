@@ -86,6 +86,13 @@ bool CmdFlushAll(shared_ptr<Connection> conn, Command& cmd);
 bool CmdExists(shared_ptr<Connection> conn, Command& cmd);
 bool CmdType(shared_ptr<Connection> conn, Command& cmd);
 
+// transaction command
+bool CmdMulti(shared_ptr<Connection> conn, Command& cmd);
+bool CmdExec(shared_ptr<Connection> conn, Command& cmd);
+bool CmdDiscard(shared_ptr<Connection> conn, Command& cmd);
+bool CmdWatch(shared_ptr<Connection> conn, Command& cmd);
+bool CmdUnwatch(shared_ptr<Connection> conn, Command& cmd);
+
 // config command
 bool CmdConfigGet(shared_ptr<Connection> conn, Command& cmd);
 
@@ -150,6 +157,15 @@ inline const std::unordered_map<std::string, std::function<bool(shared_ptr<Conne
         {"flushall", CmdFlushAll},
         {"exists", CmdExists},
         {"type", CmdType},
+
+        // transaction command
+        {"multi", CmdMulti},
+        {"exec", CmdExec},
+        {"discard", CmdDiscard},
+        {"watch", CmdWatch},
+        {"unwatch", CmdUnwatch},
+
+        // config command
         {"config", CmdConfigGet},
     };
 
