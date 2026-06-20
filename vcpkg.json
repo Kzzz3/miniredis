@@ -1,0 +1,13 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "miniredis",
+  "version": "1.0.0",
+  "description": "A simplified Redis implementation in C++",
+  "builtin-baseline": "ac7af7424cbaf9057cb246b620f455303dccd6ed",
+  "dependencies": [
+    "asio",
+    "yalantinglibs",
+    "zlib",
+    "jemalloc"
+  ]
+}

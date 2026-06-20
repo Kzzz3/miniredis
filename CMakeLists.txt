@@ -4,12 +4,15 @@ project(miniredis VERSION 1.0 LANGUAGES CXX)
 # 设置 C++ 标准
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2  -Wall")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -O2  -Wall")
+# 编译选项（跨平台）
+if(MSVC)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /O2 /W3 /WX-")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2 /W3 /WX-")
+else()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wall")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -Wall")
+endif()
 
-# 设置 vcpkg 工具链文件路径
-set(CMAKE_PREFIX_PATH "/home/kzzz3/tool/vcpkg/installed/x64-linux")
-set(CMAKE_TOOLCHAIN_FILE "/home/kzzz3/tool/vcpkg/scripts/buildsystems/vcpkg.cmake")
 
 # 包含子目录
 add_subdirectory(tests)

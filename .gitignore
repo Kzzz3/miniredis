@@ -1,2 +1,5 @@
 build/
 .vscode/
+
+# CMake user presets (local config, do not commit)
+CMakeUserPresets.json

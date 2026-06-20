@@ -1,5 +1,7 @@
 ﻿#include "server.h"
 #include <iostream>
+#include <thread>
+#include <chrono>
 
 std::string GenerateReply(std::vector<std::string>& result)
 {
@@ -41,7 +43,7 @@ int main()
         {
             while (true)
             {
-                sleep(1);
+                std::this_thread::sleep_for(std::chrono::seconds(1));
                 char buffer[1024];
                 size_t n = socket.read_some(asio::buffer(buffer, 1024));
                 if (n != 0)
