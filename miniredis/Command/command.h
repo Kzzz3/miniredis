@@ -83,6 +83,8 @@ bool CmdExpire(shared_ptr<Connection> conn, Command& cmd);
 bool CmdKeyNum(shared_ptr<Connection> conn, Command& cmd);
 bool CmdFlushDB(shared_ptr<Connection> conn, Command& cmd);
 bool CmdFlushAll(shared_ptr<Connection> conn, Command& cmd);
+bool CmdExists(shared_ptr<Connection> conn, Command& cmd);
+bool CmdType(shared_ptr<Connection> conn, Command& cmd);
 
 // config command
 bool CmdConfigGet(shared_ptr<Connection> conn, Command& cmd);
@@ -146,6 +148,8 @@ inline const std::unordered_map<std::string, std::function<bool(shared_ptr<Conne
         {"ping", CmdPing},
         {"keynum", CmdKeyNum},
         {"flushall", CmdFlushAll},
+        {"exists", CmdExists},
+        {"type", CmdType},
         {"config", CmdConfigGet},
     };
 

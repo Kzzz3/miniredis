@@ -226,3 +226,72 @@ bool CmdConfigGet(shared_ptr<Connection> conn, Command& cmd)
     conn->AsyncSend(std::move(reply));
     return true;
 }
+
+bool CmdExists(shared_ptr<Connection> conn, Command& cmd)
+{
+    if (cmd.size() < 2)
+        return false;
+
+    size_t count = 0;
+    for (size_t i = 1; i < cmd.size(); ++i)
+    {
+        // Check if key is expired
+        if (server.database.isKeyExpired(cmd[i]))
+            continue;
+
+        HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[i]);
+        if (kvstore.contains(cmd[i]))
+            count++;
+    }
+
+    auto reply = GenerateReply(make_unique<ValueRef>(num2sds(count), nullptr));
+    conn->AsyncSend(std::move(reply));
+    return true;
+}
+
+bool CmdType(shared_ptr<Connection> conn, Command& cmd)
+{
+    if (cmd.size() != 2)
+        return false;
+
+    // Check if key is expired
+    if (server.database.isKeyExpired(cmd[1]))
+    {
+        auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("none"), nullptr));
+        conn->AsyncSend(std::move(reply));
+        return true;
+    }
+
+    HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
+    if (!kvstore.contains(cmd[1]))
+    {
+        auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("none"), nullptr));
+        conn->AsyncSend(std::move(reply));
+        return true;
+    }
+
+    auto obj = kvstore[cmd[1]];
+    const char* type_str = "unknown";
+    switch (obj->type)
+    {
+    case ObjType::REDIS_STRING:
+        type_str = "string";
+        break;
+    case ObjType::REDIS_LIST:
+        type_str = "list";
+        break;
+    case ObjType::REDIS_HASH:
+        type_str = "hash";
+        break;
+    case ObjType::REDIS_SET:
+        type_str = "set";
+        break;
+    case ObjType::REDIS_ZSET:
+        type_str = "zset";
+        break;
+    }
+
+    auto reply = GenerateReply(make_unique<ValueRef>(Sds::create(type_str), nullptr));
+    conn->AsyncSend(std::move(reply));
+    return true;
+}
