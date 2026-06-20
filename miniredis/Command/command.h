@@ -30,9 +30,13 @@ using CommandMap =
 bool CmdSet(shared_ptr<Connection> conn, Command& cmd);
 bool CmdGet(shared_ptr<Connection> conn, Command& cmd);
 bool CmdMset(shared_ptr<Connection> conn, Command& cmd);
+bool CmdMget(shared_ptr<Connection> conn, Command& cmd);
 bool CmdIncr(shared_ptr<Connection> conn, Command& cmd);
 bool CmdDecr(shared_ptr<Connection> conn, Command& cmd);
 bool CmdAppend(shared_ptr<Connection> conn, Command& cmd);
+bool CmdStrlen(shared_ptr<Connection> conn, Command& cmd);
+bool CmdSetnx(shared_ptr<Connection> conn, Command& cmd);
+bool CmdSetex(shared_ptr<Connection> conn, Command& cmd);
 bool CmdCommand(shared_ptr<Connection> conn, Command& cmd);
 
 // hash command
@@ -41,6 +45,9 @@ bool CmdHGet(shared_ptr<Connection> conn, Command& cmd);
 bool CmdHDel(shared_ptr<Connection> conn, Command& cmd);
 bool CmdHKeys(shared_ptr<Connection> conn, Command& cmd);
 bool CmdHGetAll(shared_ptr<Connection> conn, Command& cmd);
+bool CmdHLen(shared_ptr<Connection> conn, Command& cmd);
+bool CmdHExists(shared_ptr<Connection> conn, Command& cmd);
+bool CmdHIncrby(shared_ptr<Connection> conn, Command& cmd);
 
 // list command
 bool CmdLPush(shared_ptr<Connection> conn, Command& cmd);
@@ -82,9 +89,13 @@ inline const std::unordered_map<std::string, std::function<bool(shared_ptr<Conne
         {"set", CmdSet},
         {"get", CmdGet},
         {"mset", CmdMset},
+        {"mget", CmdMget},
         {"incr", CmdIncr},
         {"decr", CmdDecr},
         {"append", CmdAppend},
+        {"strlen", CmdStrlen},
+        {"setnx", CmdSetnx},
+        {"setex", CmdSetex},
         {"command", CmdCommand},
 
         // hash command
@@ -93,6 +104,9 @@ inline const std::unordered_map<std::string, std::function<bool(shared_ptr<Conne
         {"hdel", CmdHDel},
         {"hkeys", CmdHKeys},
         {"hgetall", CmdHGetAll},
+        {"hlen", CmdHLen},
+        {"hexists", CmdHExists},
+        {"hincrby", CmdHIncrby},
 
         // list command
         {"lpop", CmdLPop},

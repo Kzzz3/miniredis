@@ -91,6 +91,18 @@ inline auto HashObjectKVs(RedisObj* obj)
     return result;
 }
 
+inline size_t HashObjectLen(RedisObj* obj)
+{
+    HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
+    return ht.size();
+}
+
+inline bool HashObjectExists(RedisObj* obj, Sds* field)
+{
+    HashTable<Sds*>& ht = *reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr);
+    return ht.contains(field);
+}
+
 inline void HashObjectDataSerialize(ofstream& ofs, RedisObj* obj)
 {
     HashTable<Sds*>::serialize_to(ofs, reinterpret_cast<HashTable<Sds*>*>(obj->data.ptr),
