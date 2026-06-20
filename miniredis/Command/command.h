@@ -75,7 +75,8 @@ bool CmdFlushAll(shared_ptr<Connection> conn, Command& cmd);
 // config command
 bool CmdConfigGet(shared_ptr<Connection> conn, Command& cmd);
 
-static std::unordered_map<std::string, std::function<bool(shared_ptr<Connection> conn, Command&)>>
+// Use inline const to avoid multiple copies in each translation unit
+inline const std::unordered_map<std::string, std::function<bool(shared_ptr<Connection> conn, Command&)>>
     commands_map = {
         // string command
         {"set", CmdSet},
@@ -127,7 +128,8 @@ static std::unordered_map<std::string, std::function<bool(shared_ptr<Connection>
 inline std::function<bool(shared_ptr<Connection>, Command&)> GetCommandHandler(Sds* cmdtype)
 {
     std::string command(cmdtype->buf, cmdtype->length());
-    return commands_map.contains(command) ? commands_map[command] : nullptr;
+    auto it = commands_map.find(command);
+    return it != commands_map.end() ? it->second : nullptr;
 }
 
 inline unique_ptr<Sds, decltype(&Sds::destroy)> GenerateErrorReply(const char* errmsg)
@@ -159,8 +161,10 @@ std::unique_ptr<Sds, decltype(&Sds::destroy)> GenerateReply(T&& result)
         vec = std::move(result);
     }
 
-    // Calculate total size for pre-allocation
-    size_t total_size = 10;  // "*" + size + "\r\n"
+    // Calculate total size for pre-allocation (only once)
+    int size = vec.size();
+    std::string size_str = std::to_string(size);
+    size_t total_size = 1 + size_str.length() + 2;  // "*" + size + "\r\n"
     for (auto& vr : vec)
     {
         if (vr == nullptr)
@@ -169,27 +173,12 @@ std::unique_ptr<Sds, decltype(&Sds::destroy)> GenerateReply(T&& result)
         }
         else
         {
-            total_size += 3 + 20 + 2 + vr->val->length() + 2;  // "$" + len + "\r\n" + data + "\r\n"
-        }
-    }
-
-    // Pre-allocate with enough space
-    int size = vec.size();
-    std::string size_str = std::to_string(size);
-    total_size = 1 + size_str.length() + 2;  // "*" + size + "\r\n"
-    for (auto& vr : vec)
-    {
-        if (vr == nullptr)
-        {
-            total_size += 6;
-        }
-        else
-        {
             std::string len_str = std::to_string(vr->val->length());
             total_size += 1 + len_str.length() + 2 + vr->val->length() + 2;
         }
     }
 
+    // Pre-allocate with enough space
     Sds* reply = Sds::create("", 0, total_size);
     reply = reply->append("*", 1);
     reply = reply->append(size_str.c_str(), size_str.length());
