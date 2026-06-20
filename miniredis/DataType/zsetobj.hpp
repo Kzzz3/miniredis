@@ -93,6 +93,22 @@ inline auto ZsetObjectRevRange(RedisObj* obj, double minScore, double maxScore)
     return result;
 }
 
+inline size_t ZsetObjectCard(RedisObj* obj)
+{
+    RBTree& zset = *reinterpret_cast<RBTree*>(obj->data.ptr);
+    return zset.rbt.size();
+}
+
+inline std::optional<double> ZsetObjectScore(RedisObj* obj, Sds* member)
+{
+    RBTree& zset = *reinterpret_cast<RBTree*>(obj->data.ptr);
+    if (!zset.contains(member))
+        return std::nullopt;
+
+    auto entry = zset.find(member);
+    return entry->first;
+}
+
 inline void ZsetObjectDataSerialize(ofstream& ofs, RedisObj* obj)
 {
     RBTree::serialize_to(ofs, reinterpret_cast<RBTree*>(obj->data.ptr));

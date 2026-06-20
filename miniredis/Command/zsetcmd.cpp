@@ -145,3 +145,66 @@ bool CmdZRevRange(shared_ptr<Connection> conn, Command& cmd)
     conn->AsyncSend(std::move(reply));
     return true;
 }
+
+bool CmdZCard(shared_ptr<Connection> conn, Command& cmd)
+{
+    if (cmd.size() != 2)
+        return false;
+
+    HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
+    if (!kvstore.contains(cmd[1]))
+    {
+        auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("0"), nullptr));
+        conn->AsyncSend(std::move(reply));
+        return true;
+    }
+
+    auto obj = kvstore[cmd[1]];
+    if (obj->type != ObjType::REDIS_ZSET)
+    {
+        auto reply =
+            GenerateErrorReply("WRONGTYPE Operation against a key holding the wrong kind of value");
+        conn->AsyncSend(std::move(reply));
+        return false;
+    }
+
+    size_t cardinality = ZsetObjectCard(obj);
+    auto reply = GenerateReply(make_unique<ValueRef>(num2sds(cardinality), nullptr));
+    conn->AsyncSend(std::move(reply));
+    return true;
+}
+
+bool CmdZScore(shared_ptr<Connection> conn, Command& cmd)
+{
+    if (cmd.size() != 3)
+        return false;
+
+    HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
+    if (!kvstore.contains(cmd[1]))
+    {
+        auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("nil"), nullptr));
+        conn->AsyncSend(std::move(reply));
+        return true;
+    }
+
+    auto obj = kvstore[cmd[1]];
+    if (obj->type != ObjType::REDIS_ZSET)
+    {
+        auto reply =
+            GenerateErrorReply("WRONGTYPE Operation against a key holding the wrong kind of value");
+        conn->AsyncSend(std::move(reply));
+        return false;
+    }
+
+    auto score = ZsetObjectScore(obj, cmd[2]);
+    if (!score.has_value())
+    {
+        auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("nil"), nullptr));
+        conn->AsyncSend(std::move(reply));
+        return true;
+    }
+
+    auto reply = GenerateReply(make_unique<ValueRef>(num2sds(score.value()), nullptr));
+    conn->AsyncSend(std::move(reply));
+    return true;
+}

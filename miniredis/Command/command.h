@@ -72,6 +72,8 @@ bool CmdZRem(shared_ptr<Connection> conn, Command& cmd);
 bool CmdZRange(shared_ptr<Connection> conn, Command& cmd);
 bool CmdZPopMin(shared_ptr<Connection> conn, Command& cmd);
 bool CmdZRevRange(shared_ptr<Connection> conn, Command& cmd);
+bool CmdZCard(shared_ptr<Connection> conn, Command& cmd);
+bool CmdZScore(shared_ptr<Connection> conn, Command& cmd);
 
 // free command
 bool CmdDel(shared_ptr<Connection> conn, Command& cmd);
@@ -134,6 +136,8 @@ inline const std::unordered_map<std::string, std::function<bool(shared_ptr<Conne
         {"zrange", CmdZRange},
         {"zpopmin", CmdZPopMin},
         {"zrevrange", CmdZRevRange},
+        {"zcard", CmdZCard},
+        {"zscore", CmdZScore},
 
         // general command
         {"del", CmdDel},
