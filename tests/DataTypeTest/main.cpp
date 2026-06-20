@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "expirecmd_test.hpp"
+#include "generalcmd_test.hpp"
 #include "hashcmd_test.hpp"
 #include "listcmd_test.hpp"
 #include "setcmd_test.hpp"
