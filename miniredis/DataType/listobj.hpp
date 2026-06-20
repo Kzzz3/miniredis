@@ -83,6 +83,29 @@ inline vector<unique_ptr<ValueRef>> ListObjectRange(RedisObj* obj, int start, in
     return result;
 }
 
+inline size_t ListObjectLen(RedisObj* obj)
+{
+    LinkedList& list = *reinterpret_cast<LinkedList*>(obj->data.ptr);
+    return list.size();
+}
+
+inline unique_ptr<ValueRef> ListObjectIndex(RedisObj* obj, int index)
+{
+    LinkedList& list = *reinterpret_cast<LinkedList*>(obj->data.ptr);
+    int size = list.size();
+    if (size == 0)
+        return nullptr;
+
+    // Handle negative index
+    index = (index % size + size) % size;
+    if (index >= size)
+        return nullptr;
+
+    auto it = list.begin();
+    std::advance(it, index);
+    return make_unique<ValueRef>(reinterpret_cast<Sds*>(*it), obj);
+}
+
 inline void ListObjectDestroy(RedisObj* obj)
 {
     LinkedList& list = *reinterpret_cast<LinkedList*>(obj->data.ptr);

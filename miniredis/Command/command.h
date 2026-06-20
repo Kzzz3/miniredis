@@ -55,6 +55,8 @@ bool CmdRPush(shared_ptr<Connection> conn, Command& cmd);
 bool CmdLPop(shared_ptr<Connection> conn, Command& cmd);
 bool CmdRPop(shared_ptr<Connection> conn, Command& cmd);
 bool CmdLRange(shared_ptr<Connection> conn, Command& cmd);
+bool CmdLLen(shared_ptr<Connection> conn, Command& cmd);
+bool CmdLIndex(shared_ptr<Connection> conn, Command& cmd);
 
 // set command
 bool CmdSAdd(shared_ptr<Connection> conn, Command& cmd);
@@ -114,6 +116,8 @@ inline const std::unordered_map<std::string, std::function<bool(shared_ptr<Conne
         {"lpush", CmdLPush},
         {"rpush", CmdRPush},
         {"lrange", CmdLRange},
+        {"llen", CmdLLen},
+        {"lindex", CmdLIndex},
 
         // set command
         {"sadd", CmdSAdd},

@@ -143,3 +143,67 @@ bool CmdLRange(shared_ptr<Connection> conn, Command& cmd)
     conn->AsyncSend(std::move(reply));
     return true;
 }
+
+bool CmdLLen(shared_ptr<Connection> conn, Command& cmd)
+{
+    if (cmd.size() != 2)
+        return false;
+
+    HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
+    if (!kvstore.contains(cmd[1]))
+    {
+        auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("0"), nullptr));
+        conn->AsyncSend(std::move(reply));
+        return true;
+    }
+
+    auto obj = kvstore[cmd[1]];
+    if (obj->type != ObjType::REDIS_LIST)
+    {
+        auto reply =
+            GenerateErrorReply("WRONGTYPE Operation against a key holding the wrong kind of value");
+        conn->AsyncSend(std::move(reply));
+        return false;
+    }
+
+    size_t len = ListObjectLen(obj);
+    auto reply = GenerateReply(make_unique<ValueRef>(num2sds(len), nullptr));
+    conn->AsyncSend(std::move(reply));
+    return true;
+}
+
+bool CmdLIndex(shared_ptr<Connection> conn, Command& cmd)
+{
+    if (cmd.size() != 3)
+        return false;
+
+    HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
+    if (!kvstore.contains(cmd[1]))
+    {
+        auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("nil"), nullptr));
+        conn->AsyncSend(std::move(reply));
+        return true;
+    }
+
+    auto obj = kvstore[cmd[1]];
+    if (obj->type != ObjType::REDIS_LIST)
+    {
+        auto reply =
+            GenerateErrorReply("WRONGTYPE Operation against a key holding the wrong kind of value");
+        conn->AsyncSend(std::move(reply));
+        return false;
+    }
+
+    auto index = str2num<int>(cmd[2]->buf, cmd[2]->length());
+    if (!index.has_value())
+    {
+        auto reply = GenerateErrorReply("ERR value is not an integer or out of range");
+        conn->AsyncSend(std::move(reply));
+        return false;
+    }
+
+    auto result = ListObjectIndex(obj, index.value());
+    auto reply = GenerateReply(std::move(result));
+    conn->AsyncSend(std::move(reply));
+    return true;
+}
