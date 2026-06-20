@@ -12,6 +12,11 @@ file(GLOB TEST_SOURCES
 # 创建测试可执行文件
 add_executable(DataStructTest ${TEST_SOURCES})
 
+# 查找并链接 Google Test
+find_package(GTest CONFIG REQUIRED)
+target_link_libraries(DataStructTest PRIVATE GTest::gtest GTest::gtest_main)
+
+# 查找并链接 yalantinglibs
 find_package(yalantinglibs CONFIG REQUIRED)
 target_link_libraries(DataStructTest PRIVATE yalantinglibs::yalantinglibs)
 

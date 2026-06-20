@@ -122,29 +122,46 @@ IntSet* upgrade(IntSet* is)
         assert(false);
 
     uint32_t new_encoding = is->encoding * 2;
-    IntSet* new_is = Allocator::recreate_with_extra<IntSet>(is, is->length * is->encoding,
-                                                            is->length * new_encoding);
+    size_t old_extra = is->length * is->encoding;
+    size_t new_extra = is->length * new_encoding;
 
-    switch (new_is->encoding)
-    {
-    case INTSET_ENC_INT16:
-        for (int64_t i = new_is->length - 1; i >= 0; --i)
+    // Allocate new memory manually to avoid constructor issues with flexible array
+    void* memory = Allocator::allocate(sizeof(IntSet) + new_extra);
+    IntSet* new_is = static_cast<IntSet*>(memory);
+    new_is->encoding = is->encoding;  // Keep old encoding for conversion
+    new_is->length = is->length;
+
+    // Copy old data to new memory
+    std::memcpy(new_is->content, is->content, old_extra);
+
+    // Convert data from back to front to avoid overwriting source
+    // Only convert if there are elements
+    if (new_is->length > 0) {
+        switch (is->encoding)
         {
-            reinterpret_cast<int32_t*>(new_is->content)[i] =
-                reinterpret_cast<int16_t*>(new_is->content)[i];
+        case INTSET_ENC_INT16:
+            for (int64_t i = static_cast<int64_t>(new_is->length) - 1; i >= 0; --i)
+            {
+                reinterpret_cast<int32_t*>(new_is->content)[i] =
+                    reinterpret_cast<int16_t*>(new_is->content)[i];
+            }
+            break;
+        case INTSET_ENC_INT32:
+            for (int64_t i = static_cast<int64_t>(new_is->length) - 1; i >= 0; --i)
+            {
+                reinterpret_cast<int64_t*>(new_is->content)[i] =
+                    reinterpret_cast<int32_t*>(new_is->content)[i];
+            }
+            break;
+        default:
+            assert(false);
         }
-        break;
-    case INTSET_ENC_INT32:
-        for (int64_t i = new_is->length - 1; i >= 0; --i)
-        {
-            reinterpret_cast<int64_t*>(new_is->content)[i] =
-                reinterpret_cast<int32_t*>(new_is->content)[i];
-        }
-        break;
-    default:
-        assert(false);
     }
 
     new_is->encoding = new_encoding;
+
+    // Free old memory
+    Allocator::deallocate(is, sizeof(IntSet) + old_extra);
+
     return new_is;
 }

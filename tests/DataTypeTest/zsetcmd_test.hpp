@@ -1,83 +1,170 @@
 #pragma once
+
+#include <gtest/gtest.h>
+
 #include <asio.hpp>
-#include <atomic>
-#include <chrono>
-#include <future>
-#include <iostream>
-#include <mutex>
-#include <random>
-#include <shared_mutex>
-#include <sstream>
+#include <memory>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "utility.hpp"
 
-using namespace std;
+// ============================================================================
+// Sorted Set Command Integration Tests
+// ============================================================================
 
-inline void TestZSetCommands(int num)
-{
-    cout << "Starting sorted set commands test..." << endl;
-    asio::io_context io_context;
-    auto socket = make_unique<asio::ip::tcp::socket>(io_context);
-    asio::ip::tcp::resolver resolver(io_context);
-    asio::connect(*socket, resolver.resolve("127.0.0.1", "10087"));
-
-    unordered_map<string, vector<string>> testKeys;
-    static thread_local mt19937 rng{random_device{}()};
-
-    for (int i = 0; i < num; i++)
-    {
-        string key = GetRandomString(10);
-        string member = GetRandomString(20);
-        string score = to_string(uniform_int_distribution<>(0, 999)(rng));
-
-        // ZADD command
-        vector<string> zaddArgs = {"ZADD", key, score, member};
-        asio::write(*socket, asio::buffer(ConvertToResp(zaddArgs)));
-
-        // ZRANGE/ZREVRANGE command - randomly get existing or non-existing key
-        uniform_int_distribution<> dist(0, 100);
-        if (dist(rng) < 80 && !testKeys.empty()) // 80% chance to get existing key
-        {
-            auto it = testKeys.begin();
-            advance(it, uniform_int_distribution<>(0, testKeys.size() - 1)(rng));
-            if (dist(rng) < 50)
-            {
-                vector<string> zrangeArgs = {"ZRANGE", it->first, "0", "-1"};
-                asio::write(*socket, asio::buffer(ConvertToResp(zrangeArgs)));
-            }
-            else
-            {
-                vector<string> zrevrangeArgs = {"ZREVRANGE", it->first, "0", "-1"};
-                asio::write(*socket, asio::buffer(ConvertToResp(zrevrangeArgs)));
-            }
+class ZSetCommandTest : public ::testing::Test {
+   protected:
+    void SetUp() override {
+        try {
+            io_context = std::make_unique<asio::io_context>();
+            socket = std::make_unique<asio::ip::tcp::socket>(*io_context);
+            asio::ip::tcp::resolver resolver(*io_context);
+            asio::connect(*socket, resolver.resolve("127.0.0.1", "10087"));
+            connected = true;
+        } catch (const std::exception& e) {
+            std::cerr << "Failed to connect to server: " << e.what() << std::endl;
+            connected = false;
         }
-        else // 20% chance to get random key
-        {
-            string randomKey = GetRandomString(10);
-            if (dist(rng) < 50)
-            {
-                vector<string> zrangeArgs = {"ZRANGE", randomKey, "0", "-1"};
-                asio::write(*socket, asio::buffer(ConvertToResp(zrangeArgs)));
-            }
-            else
-            {
-                vector<string> zrevrangeArgs = {"ZREVRANGE", randomKey, "0", "-1"};
-                asio::write(*socket, asio::buffer(ConvertToResp(zrevrangeArgs)));
-            }
-        }
-
-        testKeys[key].push_back(score);
-        testKeys[key].push_back(member);
     }
 
-    // Cleanup all sorted set keys
-    for (const auto& pair : testKeys)
-    {
-        vector<string> delArgs = {"DEL", pair.first};
-        asio::write(*socket, asio::buffer(ConvertToResp(delArgs)));
+    void TearDown() override {
+        for (const auto& key : test_keys) {
+            sendCommand({"DEL", key});
+        }
+
+        if (connected && socket) {
+            try {
+                socket->shutdown(asio::ip::tcp::socket::shutdown_both);
+                socket->close();
+            } catch (...) {
+            }
+        }
     }
-    cout << "Sorted set commands test completed" << endl;
+
+    void sendCommand(const std::vector<std::string>& args) {
+        asio::write(*socket, asio::buffer(ConvertToResp(args)));
+    }
+
+    std::string readResponse() {
+        char buffer[4096];
+        size_t n = socket->read_some(asio::buffer(buffer, sizeof(buffer)));
+        return std::string(buffer, n);
+    }
+
+    std::unique_ptr<asio::io_context> io_context;
+    std::unique_ptr<asio::ip::tcp::socket> socket;
+    bool connected = false;
+    std::vector<std::string> test_keys;
+};
+
+TEST_F(ZSetCommandTest, ZaddZrange) {
+    if (!connected) {
+        GTEST_SKIP() << "Server not available";
+    }
+
+    sendCommand({"ZADD", "testzset", "1", "member1"});
+    sendCommand({"ZADD", "testzset", "2", "member2"});
+    sendCommand({"ZADD", "testzset", "3", "member3"});
+
+    sendCommand({"ZRANGE", "testzset", "0", "-1"});
+    std::string response = readResponse();
+
+    EXPECT_NE(response.find("member1"), std::string::npos);
+    EXPECT_NE(response.find("member2"), std::string::npos);
+    EXPECT_NE(response.find("member3"), std::string::npos);
+
+    test_keys.push_back("testzset");
+}
+
+TEST_F(ZSetCommandTest, ZaddZrevrange) {
+    if (!connected) {
+        GTEST_SKIP() << "Server not available";
+    }
+
+    sendCommand({"ZADD", "testzset", "1", "member1"});
+    sendCommand({"ZADD", "testzset", "2", "member2"});
+    sendCommand({"ZADD", "testzset", "3", "member3"});
+
+    sendCommand({"ZREVRANGE", "testzset", "0", "-1"});
+    std::string response = readResponse();
+
+    // Should be in reverse order
+    size_t pos1 = response.find("member3");
+    size_t pos2 = response.find("member2");
+    size_t pos3 = response.find("member1");
+
+    EXPECT_LT(pos1, pos2);
+    EXPECT_LT(pos2, pos3);
+
+    test_keys.push_back("testzset");
+}
+
+TEST_F(ZSetCommandTest, ZaddUpdateScore) {
+    if (!connected) {
+        GTEST_SKIP() << "Server not available";
+    }
+
+    sendCommand({"ZADD", "testzset", "1", "member1"});
+    sendCommand({"ZADD", "testzset", "10", "member1"});  // Update score
+
+    sendCommand({"ZRANGE", "testzset", "0", "-1"});
+    std::string response = readResponse();
+
+    EXPECT_NE(response.find("member1"), std::string::npos);
+
+    test_keys.push_back("testzset");
+}
+
+TEST_F(ZSetCommandTest, ZrangeWithRange) {
+    if (!connected) {
+        GTEST_SKIP() << "Server not available";
+    }
+
+    sendCommand({"ZADD", "testzset", "1", "a"});
+    sendCommand({"ZADD", "testzset", "2", "b"});
+    sendCommand({"ZADD", "testzset", "3", "c"});
+    sendCommand({"ZADD", "testzset", "4", "d"});
+
+    // Get range [1, 2] (0-indexed)
+    sendCommand({"ZRANGE", "testzset", "1", "2"});
+    std::string response = readResponse();
+
+    EXPECT_EQ(response.find("a"), std::string::npos);  // Should not include
+    EXPECT_NE(response.find("b"), std::string::npos);
+    EXPECT_NE(response.find("c"), std::string::npos);
+    EXPECT_EQ(response.find("d"), std::string::npos);  // Should not include
+
+    test_keys.push_back("testzset");
+}
+
+TEST_F(ZSetCommandTest, ZrangeEmpty) {
+    if (!connected) {
+        GTEST_SKIP() << "Server not available";
+    }
+
+    sendCommand({"ZRANGE", "emptyzset", "0", "-1"});
+    std::string response = readResponse();
+
+    // Should return empty array
+    EXPECT_NE(response.find("*0"), std::string::npos);
+}
+
+TEST_F(ZSetCommandTest, ZaddMultipleSameScore) {
+    if (!connected) {
+        GTEST_SKIP() << "Server not available";
+    }
+
+    sendCommand({"ZADD", "testzset", "1", "a"});
+    sendCommand({"ZADD", "testzset", "1", "b"});
+    sendCommand({"ZADD", "testzset", "1", "c"});
+
+    sendCommand({"ZRANGE", "testzset", "0", "-1"});
+    std::string response = readResponse();
+
+    EXPECT_NE(response.find("a"), std::string::npos);
+    EXPECT_NE(response.find("b"), std::string::npos);
+    EXPECT_NE(response.find("c"), std::string::npos);
+
+    test_keys.push_back("testzset");
 }

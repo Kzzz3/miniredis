@@ -1,85 +1,156 @@
 #pragma once
+
+#include <gtest/gtest.h>
+
 #include <asio.hpp>
-#include <atomic>
-#include <chrono>
-#include <future>
-#include <iostream>
-#include <mutex>
-#include <random>
-#include <shared_mutex>
-#include <sstream>
+#include <memory>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "utility.hpp"
 
-using namespace std;
+// ============================================================================
+// Set Command Integration Tests
+// ============================================================================
 
-inline void TestSetCommands(int num)
-{
-    cout << "Starting set commands test..." << endl;
-    asio::io_context io_context;
-    auto socket = make_unique<asio::ip::tcp::socket>(io_context);
-    asio::ip::tcp::resolver resolver(io_context);
-    asio::connect(*socket, resolver.resolve("127.0.0.1", "10087"));
-
-    unordered_map<string, vector<string>> testKeys;
-    static thread_local mt19937 rng{random_device{}()};
-
-    for (int i = 0; i < num; i++)
-    {
-        string key = GetRandomString(10);
-        string member = GetRandomString(20);
-
-        // SADD command
-        vector<string> saddArgs = {"SADD", key, member};
-        asio::write(*socket, asio::buffer(ConvertToResp(saddArgs)));
-
-        // SMEMBERS/SISMEMBER command - randomly get existing or non-existing key
-        uniform_int_distribution<> dist(0, 100);
-        if (dist(rng) < 80 && !testKeys.empty()) // 80% chance to get existing key
-        {
-            auto it = testKeys.begin();
-            advance(it, uniform_int_distribution<>(0, testKeys.size() - 1)(rng));
-            if (dist(rng) < 50)
-            {
-                vector<string> smembersArgs = {"SMEMBERS", it->first};
-                asio::write(*socket, asio::buffer(ConvertToResp(smembersArgs)));
-            }
-            else
-            {
-                vector<string> sismemberArgs = {"SISMEMBER", it->first, it->second[0]};
-                asio::write(*socket, asio::buffer(ConvertToResp(sismemberArgs)));
-            }
+class SetCommandTest : public ::testing::Test {
+   protected:
+    void SetUp() override {
+        try {
+            io_context = std::make_unique<asio::io_context>();
+            socket = std::make_unique<asio::ip::tcp::socket>(*io_context);
+            asio::ip::tcp::resolver resolver(*io_context);
+            asio::connect(*socket, resolver.resolve("127.0.0.1", "10087"));
+            connected = true;
+        } catch (const std::exception& e) {
+            std::cerr << "Failed to connect to server: " << e.what() << std::endl;
+            connected = false;
         }
-        else // 20% chance to get random key
-        {
-            string randomKey = GetRandomString(10);
-            string randomMember = GetRandomString(20);
-            if (dist(rng) < 50)
-            {
-                vector<string> smembersArgs = {"SMEMBERS", randomKey};
-                asio::write(*socket, asio::buffer(ConvertToResp(smembersArgs)));
-            }
-            else
-            {
-                vector<string> sismemberArgs = {"SISMEMBER", randomKey, randomMember};
-                asio::write(*socket, asio::buffer(ConvertToResp(sismemberArgs)));
-            }
-        }
-
-        testKeys[key].push_back(member);
     }
 
-    // Cleanup all set keys
-    for (const auto& pair : testKeys)
-    {
-        vector<string> delArgs = {"DEL", pair.first};
-        asio::write(*socket, asio::buffer(ConvertToResp(delArgs)));
+    void TearDown() override {
+        for (const auto& key : test_keys) {
+            sendCommand({"DEL", key});
+        }
+
+        if (connected && socket) {
+            try {
+                socket->shutdown(asio::ip::tcp::socket::shutdown_both);
+                socket->close();
+            } catch (...) {
+            }
+        }
     }
 
-    socket->shutdown(asio::ip::tcp::socket::shutdown_both);
-    socket->close();
-    cout << "Set commands test completed" << endl;
+    void sendCommand(const std::vector<std::string>& args) {
+        asio::write(*socket, asio::buffer(ConvertToResp(args)));
+    }
+
+    std::string readResponse() {
+        char buffer[4096];
+        size_t n = socket->read_some(asio::buffer(buffer, sizeof(buffer)));
+        return std::string(buffer, n);
+    }
+
+    std::unique_ptr<asio::io_context> io_context;
+    std::unique_ptr<asio::ip::tcp::socket> socket;
+    bool connected = false;
+    std::vector<std::string> test_keys;
+};
+
+TEST_F(SetCommandTest, SaddSmembers) {
+    if (!connected) {
+        GTEST_SKIP() << "Server not available";
+    }
+
+    sendCommand({"SADD", "testset", "member1"});
+    sendCommand({"SADD", "testset", "member2"});
+
+    sendCommand({"SMEMBERS", "testset"});
+    std::string response = readResponse();
+
+    EXPECT_NE(response.find("member1"), std::string::npos);
+    EXPECT_NE(response.find("member2"), std::string::npos);
+
+    test_keys.push_back("testset");
+}
+
+TEST_F(SetCommandTest, SaddDuplicate) {
+    if (!connected) {
+        GTEST_SKIP() << "Server not available";
+    }
+
+    sendCommand({"SADD", "testset", "member1"});
+    sendCommand({"SADD", "testset", "member1"});  // Duplicate
+
+    sendCommand({"SMEMBERS", "testset"});
+    std::string response = readResponse();
+
+    // Should only contain member1 once
+    EXPECT_NE(response.find("member1"), std::string::npos);
+
+    test_keys.push_back("testset");
+}
+
+TEST_F(SetCommandTest, SismemberExists) {
+    if (!connected) {
+        GTEST_SKIP() << "Server not available";
+    }
+
+    sendCommand({"SADD", "testset", "member1"});
+
+    sendCommand({"SISMEMBER", "testset", "member1"});
+    std::string response = readResponse();
+
+    // Should return 1 (exists)
+    EXPECT_NE(response.find(":1"), std::string::npos);
+
+    test_keys.push_back("testset");
+}
+
+TEST_F(SetCommandTest, SismemberNotExists) {
+    if (!connected) {
+        GTEST_SKIP() << "Server not available";
+    }
+
+    sendCommand({"SADD", "testset", "member1"});
+
+    sendCommand({"SISMEMBER", "testset", "nonexistent"});
+    std::string response = readResponse();
+
+    // Should return 0 (not exists)
+    EXPECT_NE(response.find(":0"), std::string::npos);
+
+    test_keys.push_back("testset");
+}
+
+TEST_F(SetCommandTest, Srem) {
+    if (!connected) {
+        GTEST_SKIP() << "Server not available";
+    }
+
+    sendCommand({"SADD", "testset", "member1"});
+    sendCommand({"SADD", "testset", "member2"});
+
+    sendCommand({"SREM", "testset", "member1"});
+
+    sendCommand({"SMEMBERS", "testset"});
+    std::string response = readResponse();
+
+    EXPECT_EQ(response.find("member1"), std::string::npos);
+    EXPECT_NE(response.find("member2"), std::string::npos);
+
+    test_keys.push_back("testset");
+}
+
+TEST_F(SetCommandTest, SmembersEmpty) {
+    if (!connected) {
+        GTEST_SKIP() << "Server not available";
+    }
+
+    sendCommand({"SMEMBERS", "emptyset"});
+    std::string response = readResponse();
+
+    // Should return empty array
+    EXPECT_NE(response.find("*0"), std::string::npos);
 }
