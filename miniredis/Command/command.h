@@ -116,11 +116,13 @@ static std::unordered_map<std::string, std::function<bool(shared_ptr<Connection>
 
         // general command
         {"del", CmdDel},
+        {"ttl", CmdTTL},
+        {"expire", CmdExpire},
         {"ping", CmdPing},
         {"keynum", CmdKeyNum},
         {"flushall", CmdFlushAll},
         {"config", CmdConfigGet},
-};
+    };
 
 inline std::function<bool(shared_ptr<Connection>, Command&)> GetCommandHandler(Sds* cmdtype)
 {
@@ -142,7 +144,7 @@ concept ValidReplyType =
     std::is_same_v<std::remove_cvref_t<T>, std::unique_ptr<ValueRef>> ||
     std::is_same_v<std::remove_cvref_t<T>, std::vector<std::unique_ptr<ValueRef>>>;
 
-// 模板化的 GenerateReply 函数
+// Optimized GenerateReply with pre-allocation
 template <typename T>
     requires ValidReplyType<T>
 std::unique_ptr<Sds, decltype(&Sds::destroy)> GenerateReply(T&& result)
@@ -157,12 +159,40 @@ std::unique_ptr<Sds, decltype(&Sds::destroy)> GenerateReply(T&& result)
         vec = std::move(result);
     }
 
-    // 核心处理逻辑
-    int size = vec.size();
-    std::string temp = std::to_string(size);
+    // Calculate total size for pre-allocation
+    size_t total_size = 10;  // "*" + size + "\r\n"
+    for (auto& vr : vec)
+    {
+        if (vr == nullptr)
+        {
+            total_size += 6;  // "+nil\r\n"
+        }
+        else
+        {
+            total_size += 3 + 20 + 2 + vr->val->length() + 2;  // "$" + len + "\r\n" + data + "\r\n"
+        }
+    }
 
-    Sds* reply = Sds::create("*", 1, 1);
-    reply = reply->append(temp.c_str(), temp.length());
+    // Pre-allocate with enough space
+    int size = vec.size();
+    std::string size_str = std::to_string(size);
+    total_size = 1 + size_str.length() + 2;  // "*" + size + "\r\n"
+    for (auto& vr : vec)
+    {
+        if (vr == nullptr)
+        {
+            total_size += 6;
+        }
+        else
+        {
+            std::string len_str = std::to_string(vr->val->length());
+            total_size += 1 + len_str.length() + 2 + vr->val->length() + 2;
+        }
+    }
+
+    Sds* reply = Sds::create("", 0, total_size);
+    reply = reply->append("*", 1);
+    reply = reply->append(size_str.c_str(), size_str.length());
     reply = reply->append("\r\n", 2);
 
     for (auto& vr : vec)
@@ -173,9 +203,9 @@ std::unique_ptr<Sds, decltype(&Sds::destroy)> GenerateReply(T&& result)
             continue;
         }
 
-        temp = std::to_string(vr->val->length());
+        std::string len_str = std::to_string(vr->val->length());
         reply = reply->append("$", 1);
-        reply = reply->append(temp.c_str(), temp.length());
+        reply = reply->append(len_str.c_str(), len_str.length());
         reply = reply->append("\r\n", 2);
         reply = reply->append(vr->val);
         reply = reply->append("\r\n", 2);

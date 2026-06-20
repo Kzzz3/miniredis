@@ -60,12 +60,18 @@ awaitable<void> RedisDb::delObjectHandler()
         delobj_timer.expires_after(std::chrono::seconds(DEL_TIMER_INTERVAL));
         co_await delobj_timer.async_wait(use_awaitable);
 
-        for (auto& obj : deadobj)
+        // Use erase-remove idiom to avoid iterator invalidation
+        auto it = deadobj.begin();
+        while (it != deadobj.end())
         {
-            if (obj->refcount == 0)
+            if ((*it)->refcount == 0)
             {
-                RedisObjDestroy(obj);
-                deadobj.remove(obj);
+                RedisObjDestroy(*it);
+                it = deadobj.erase(it);
+            }
+            else
+            {
+                ++it;
             }
         }
     }
@@ -79,6 +85,100 @@ HashTable<RedisObj*>& RedisDb::getKVStore(Sds* key)
 HashTable<RedisObj*>& RedisDb::getExpiredKVStore(Sds* key)
 {
     return expired_kvstores[std::hash<Sds*>{}(key) % DATABASE_NUM];
+}
+
+bool RedisDb::isKeyExpired(Sds* key)
+{
+    HashTable<RedisObj*>& expired_kvstore = getExpiredKVStore(key);
+    if (!expired_kvstore.contains(key))
+        return false;
+
+    RedisObj* expire_obj = expired_kvstore[key];
+    uint64_t expire_time = expire_obj->data.num;
+    uint64_t now = GetSecTimestamp();
+
+    if (now >= expire_time)
+    {
+        deleteExpiredKey(key);
+        return true;
+    }
+
+    return false;
+}
+
+void RedisDb::deleteExpiredKey(Sds* key)
+{
+    HashTable<RedisObj*>& kvstore = getKVStore(key);
+    HashTable<RedisObj*>& expired_kvstore = getExpiredKVStore(key);
+
+    if (!kvstore.contains(key))
+        return;
+
+    // Delete from kvstore
+    auto entry = kvstore.find(key);
+    Sds* stored_key = entry->first;
+    RedisObj* obj = entry->second;
+
+    kvstore.erase(stored_key);
+    Sds::destroy(stored_key);
+
+    // Delete from expired_kvstore
+    if (expired_kvstore.contains(key))
+    {
+        RedisObj* expire_obj = expired_kvstore[key];
+        expired_kvstore.erase(key);
+        Allocator::destroy(expire_obj);
+    }
+
+    // Add to deadobj for cleanup
+    obj->refcount--;
+    if (obj->refcount == 0)
+        RedisObjDestroy(obj);
+    else
+        deadobj.push_back(obj);
+}
+
+void RedisDb::evictLRU()
+{
+    if (MAXMEMORY == 0 || MAXMEMORY_POLICY == 0)
+        return;  // No eviction
+
+    // Find the least recently used key across all databases
+    Sds* lru_key = nullptr;
+    RedisObj* lru_obj = nullptr;
+    uint32_t min_lru = UINT32_MAX;
+    size_t lru_db_index = 0;
+
+    for (size_t i = 0; i < kvstores.size(); ++i)
+    {
+        for (auto& [key, obj] : kvstores[i])
+        {
+            // For volatile-lru, only consider keys with expiration
+            if (MAXMEMORY_POLICY == 2 && !expired_kvstores[i].contains(key))
+                continue;
+
+            if (obj->lru < min_lru)
+            {
+                min_lru = obj->lru;
+                lru_key = key;
+                lru_obj = obj;
+                lru_db_index = i;
+            }
+        }
+    }
+
+    if (lru_key == nullptr)
+        return;
+
+    // Delete the LRU key
+    Sds* key_copy = Sds::create(lru_key->buf, lru_key->length());
+    deleteExpiredKey(key_copy);
+    Sds::destroy(key_copy);
+}
+
+size_t RedisDb::getMemoryUsage() const
+{
+    return Allocator::current_allocated.load();
 }
 
 void RedisDb::loadPersistedData()

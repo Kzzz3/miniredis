@@ -6,6 +6,12 @@ bool CmdSet(shared_ptr<Connection> conn, Command& cmd)
     if (cmd.size() != 3)
         return false;
 
+    // Check memory limit before inserting
+    if (MAXMEMORY > 0 && server.database.getMemoryUsage() > MAXMEMORY)
+    {
+        server.database.evictLRU();
+    }
+
     HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
     if (!kvstore.contains(cmd[1]))
     {
@@ -38,6 +44,14 @@ bool CmdGet(shared_ptr<Connection> conn, Command& cmd)
     if (cmd.size() != 2)
         return false;
 
+    // Check if key is expired (lazy deletion)
+    if (server.database.isKeyExpired(cmd[1]))
+    {
+        auto reply = GenerateReply(make_unique<ValueRef>(Sds::create("nil"), nullptr));
+        conn->AsyncSend(std::move(reply));
+        return true;
+    }
+
     HashTable<RedisObj*>& kvstore = server.database.getKVStore(cmd[1]);
     if (!kvstore.contains(cmd[1]))
     {
@@ -54,6 +68,9 @@ bool CmdGet(shared_ptr<Connection> conn, Command& cmd)
         conn->AsyncSend(std::move(reply));
         return false;
     }
+
+    // Update LRU timestamp
+    obj->lru = GetSecTimestamp();
 
     auto reply = GenerateReply(StringObjectGet(obj));
     conn->AsyncSend(std::move(reply));

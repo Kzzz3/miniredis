@@ -51,6 +51,10 @@ public:
     void startDataPersistence();
     HashTable<RedisObj*>& getKVStore(Sds* key);
     HashTable<RedisObj*>& getExpiredKVStore(Sds* key);
+    bool isKeyExpired(Sds* key);  // Check and delete if expired
+    void deleteExpiredKey(Sds* key);  // Delete expired key
+    void evictLRU();  // Evict least recently used keys
+    size_t getMemoryUsage() const;  // Get current memory usage
 
     // rdb
     void startRdb();

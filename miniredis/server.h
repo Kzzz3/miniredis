@@ -35,6 +35,8 @@ extern size_t DATABASE_NUM;
 extern size_t RDB_TIMER_INTERVAL;
 extern size_t AOF_TIMER_INTERVAL;
 extern size_t DEL_TIMER_INTERVAL;
+extern size_t MAXMEMORY;  // Maximum memory in bytes (0 = unlimited)
+extern int MAXMEMORY_POLICY;  // 0=noeviction, 1=allkeys-lru, 2=volatile-lru
 
 constexpr size_t IO_THREAD_NUM = 1;
 constexpr size_t EXEC_THREAD_NUM = 1;

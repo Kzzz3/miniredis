@@ -6,6 +6,8 @@ size_t DATABASE_NUM = 16;
 size_t RDB_TIMER_INTERVAL = 60;
 size_t AOF_TIMER_INTERVAL = 60;
 size_t DEL_TIMER_INTERVAL = 60;
+size_t MAXMEMORY = 0;  // 0 = unlimited
+int MAXMEMORY_POLICY = 1;  // default: allkeys-lru
 
 Server server;
 
